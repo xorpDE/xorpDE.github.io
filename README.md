@@ -4,7 +4,7 @@ A browser-based ancestry calculator built specifically for Balkan populations. P
 
 Works offline. No server. Just one HTML file.
 
-http://www.xorpde.github.io
+https://xorpde.github.io
 
 ## What it does
 
