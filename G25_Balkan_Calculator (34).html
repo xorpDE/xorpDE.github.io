@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G25 Balkan Ancestry Calculator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d0d;--card:#161616;--card2:#1c1c1c;--border:#262626;
+  --text:#ededed;--text2:#8a8a8a;--text3:#4a4a4a;
+  --accent:#e07840;--accent2:#f0a060;--glow:rgba(224,120,64,0.08);
+  --green:#6dba7a;--gold:#d4b04e;--orange:#e07840;--blue:#5a9fd6;
+  --illyrian:var(--green);--thracian:var(--gold);--roman:var(--orange);--slavic:var(--blue);
+}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+.container{max-width:780px;margin:0 auto;padding:56px 20px 120px}
+
+/* Header */
+h1{font-size:2rem;font-weight:700;letter-spacing:-0.03em;margin-bottom:4px}
+h1 span{color:var(--accent)}
+.subtitle{color:var(--text3);font-size:0.84rem;font-weight:400;margin-bottom:40px;letter-spacing:0.01em}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:12px}
+h2{font-size:1.05rem;font-weight:600;margin-bottom:12px;letter-spacing:-0.01em}
+h3{font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:8px}
+
+/* Mode toggle */
+.mode-toggle{display:flex;margin-bottom:12px;border:1px solid var(--border);border-radius:9px;overflow:hidden;width:fit-content}
+.mode-btn{padding:8px 18px;background:var(--card2);border:none;color:var(--text3);font-family:inherit;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.15s;border-right:1px solid var(--border)}
+.mode-btn:last-child{border-right:none}
+.mode-btn:hover{color:var(--text2)}
+.mode-btn.active{background:var(--accent);color:#fff}
+.mode-hint{color:var(--text3);font-size:0.76rem;margin-bottom:16px;line-height:1.5}
+
+/* Input */
+textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.72rem;padding:12px 14px;resize:vertical;min-height:60px;transition:border-color 0.2s;line-height:1.7}
+textarea:focus{outline:none;border-color:var(--accent)}
+textarea::placeholder{color:var(--text3)}
+.hint{font-size:0.72rem;color:var(--text3);margin-top:6px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;padding:9px 20px;border:none;border-radius:9px;font-family:inherit;font-size:0.84rem;font-weight:600;cursor:pointer;transition:all 0.15s;margin-top:12px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+
+/* Admixture */
+.admix-bar-container{margin:14px 0}
+.admix-bar{display:flex;height:36px;border-radius:9px;overflow:hidden;margin-bottom:12px}
+.admix-bar>div{display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.25);transition:width 0.4s ease;min-width:0;overflow:hidden;white-space:nowrap}
+.admix-bar .seg-illyrian{background:var(--green)}
+.admix-bar .seg-thracian{background:var(--gold)}
+.admix-bar .seg-roman{background:var(--orange)}
+.admix-bar .seg-slavic{background:var(--blue)}
+.admix-legend{display:flex;gap:20px;flex-wrap:nowrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem;white-space:nowrap}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.legend-pct{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:0.78rem;color:var(--text2)}
+.distance-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:0.74rem;margin-top:12px}
+.distance-label{color:var(--text3);font-size:0.68rem}
+.distance-val{color:var(--accent2);font-weight:600}
+
+/* Results animation */
+.results{display:none}
+.results.visible{display:block;animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Coords */
+.coords-display{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:0.64rem;color:var(--text3);word-break:break-all;line-height:1.8;max-height:80px;overflow-y:auto}
+.copy-btn{background:var(--card2);border:1px solid var(--border);color:var(--text3);padding:4px 10px;border-radius:5px;font-size:0.7rem;cursor:pointer;font-family:inherit;font-weight:600;transition:all 0.15s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.section-divider{height:1px;background:var(--border);margin:18px 0}
+
+/* Filters */
+.period-filters{display:flex;gap:5px;margin-bottom:12px}
+.filter-btn{padding:6px 14px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text3);font-family:inherit;font-size:0.76rem;font-weight:600;cursor:pointer;transition:all 0.15s}
+.filter-btn:hover{border-color:var(--text3);color:var(--text2)}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-sub{display:none}
+
+/* Table */
+.dist-table-wrap{max-height:460px;overflow-y:auto;margin-top:10px;border-radius:10px;border:1px solid var(--border)}
+.dist-table-wrap::-webkit-scrollbar{width:3px}
+.dist-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+table{width:100%;border-collapse:collapse}
+th{position:sticky;top:0;background:var(--card2);text-align:left;padding:8px 10px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);border-bottom:1px solid var(--border);z-index:2}
+td{padding:6px 10px;font-size:0.78rem;color:var(--text2)}
+tr{border-bottom:1px solid #1a1a1a}
+tr:nth-child(even) td{background:rgba(255,255,255,0.012)}
+tr:hover td{background:rgba(255,255,255,0.03)}
+.rank-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:0.62rem;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sample-name{font-weight:500;color:var(--text);font-size:0.77rem}
+.dist-val{font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.act-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:5px;border:1px solid transparent;background:transparent;color:var(--text3);cursor:pointer;transition:all 0.12s;padding:0}
+.act-btn:hover{color:var(--accent)}
+.act-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Modal (kept minimal) */
+.map-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.map-overlay.visible{display:flex}
+.map-modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;max-width:480px;width:90%}
+.map-modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.map-modal-title{font-size:1rem;font-weight:600;color:var(--accent)}
+.map-modal-sub{font-size:.74rem;color:var(--text2);margin-top:2px}
+.map-close{background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer}
+.map-coords{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text3);margin-top:8px}
+
+/* PCA Plot */
+.pca-open-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:inherit;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s;margin-bottom:20px}
+.pca-open-btn:hover{border-color:var(--accent);color:var(--accent)}
+.pca-open-btn svg{stroke:currentColor}
+.pca-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.pca-overlay.visible{display:flex}
+.pca-panel{width:94%;max-width:900px;max-height:92vh;display:flex;flex-direction:column;gap:12px}
+.pca-header{display:flex;justify-content:space-between;align-items:flex-start}
+.pca-title{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:600;color:var(--text)}
+.pca-sub{font-size:0.74rem;color:var(--text3);margin-top:2px}
+.pca-close{background:none;border:none;color:var(--text3);font-size:1.3rem;cursor:pointer;padding:4px 8px}
+.pca-close:hover{color:var(--text)}
+.pca-input-row{display:flex;gap:8px}
+.pca-input-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:9px 12px}
+.pca-input-row input:focus{outline:none;border-color:var(--accent)}
+.pca-input-row input::placeholder{color:var(--text3)}
+.pca-canvas-wrap{position:relative;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex:1;min-height:400px}
+.pca-canvas-wrap canvas{width:100%;height:100%;display:block}
+.pca-legend-bar{display:flex;flex-wrap:wrap;gap:10px 18px;padding:4px 0}
+.pca-legend-bar span{display:flex;align-items:center;gap:5px;font-size:0.68rem;color:var(--text2);white-space:nowrap}
+.pca-legend-bar span i{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pca-tooltip{display:none;position:fixed;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:0.72rem;color:var(--text);pointer-events:none;z-index:400;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.pca-dim-row{display:flex;align-items:center;gap:4px}
+.pca-dim-label{font-size:0.7rem;font-weight:600;color:var(--text3);margin-right:2px}
+.pca-dim-sep{width:12px}
+.pc-btn{padding:4px 10px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text3);font-family:inherit;font-size:0.68rem;font-weight:600;cursor:pointer;transition:all 0.12s}
+.pc-btn:hover{border-color:var(--text2);color:var(--text2)}
+.pc-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>G25 Balkan <span>Ancestry Calculator</span></h1>
+  <p class="subtitle">Constrained least-squares admixture modeling using Global25 PCA coordinates</p>
+  <button class="pca-open-btn" onclick="openPCA()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="7" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="5" cy="8" r="1.5"/><circle cx="19" cy="16" r="1.5"/></svg>
+    PCA Plot
+  </button>
+
+  <div class="card">
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="modeNormal" onclick="setMode('normal')">Ancestry Calculator</button>
+      <button class="mode-btn" id="modeGhost" onclick="setMode('ghost')">Removed Slavic Input Calculator</button>
+    </div>
+    <p class="mode-hint" id="modeHint">Calculate your Balkan ancestry breakdown and compare to reference populations.</p>
+    <textarea id="coordInput" rows="3" placeholder="Paste your G25 coordinates here — e.g. Label,0.1234,0.1456,0.0234,-0.0123,..."></textarea>
+    <button class="btn btn-primary" onclick="runCalculator()">Calculate</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="card">
+      <h2>Admixture Results</h2>
+      <div class="admix-bar-container">
+        <div class="admix-bar" id="admixBar"></div>
+        <div class="admix-legend" id="admixLegend"></div>
+      </div>
+      <div class="distance-badge" style="margin-top:14px;">
+        <span class="distance-label">Fit distance:</span>
+        <span class="distance-val" id="fitDist"></span>
+      </div>
+    </div>
+
+      <div class="card">
+      <h2>Distance to Balkan Samples</h2>
+      
+      <div class="period-filters" id="comparePeriodFilters">
+        <button class="filter-btn active" onclick="filterComparePeriod('all',this)">All</button>
+        <button class="filter-btn" onclick="filterComparePeriod('modern',this)">Modern<span class="filter-sub">Present-day</span></button>
+        <button class="filter-btn" onclick="filterComparePeriod('ancient',this)">Ancient<span class="filter-sub">All periods</span></button>
+      </div>
+      <div id="compareDistTableWrap"></div>
+    </div>
+
+      <div class="card" id="slavicCard" style="display:none;">
+      <h2>Pre-Slavic Analysis</h2>
+      <p style="color:var(--text2);font-size:0.86rem;margin-bottom:14px;">Subtract your Balto-Slavic ancestry to reveal the underlying pre-migration profile.</p>
+      <button class="btn btn-primary" onclick="doGhostRemoval()">Remove &amp; Analyze</button>
+    </div>
+  </div>
+
+  <div class="results" id="ghostResults">
+    <div class="card">
+      <h2>Pre-Slavic Profile</h2>
+      <div class="admix-bar-container">
+        <div class="admix-bar" id="ghostAdmixBar"></div>
+        <div class="admix-legend" id="ghostAdmixLegend"></div>
+      </div>
+      <div class="distance-badge" style="margin-top:14px;">
+        <span class="distance-label">Fit distance:</span>
+        <span class="distance-val" id="ghostFitDist"></span>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <h3>Raw Coordinates</h3>
+      <div class="coords-display" id="ghostCoords"></div>
+      <button class="copy-btn" onclick="copyGhost()" style="margin-top:10px;">Copy coordinates</button>
+    </div>
+
+    <div class="card">
+      <h2>Pre-Slavic Distance to Samples</h2>
+      
+      <div class="period-filters" id="periodFilters">
+        <button class="filter-btn active" onclick="filterPeriod('all',this)">All</button>
+        <button class="filter-btn" onclick="filterPeriod('modern',this)">Modern<span class="filter-sub">Present-day</span></button>
+        <button class="filter-btn" onclick="filterPeriod('ancient',this)">Ancient<span class="filter-sub">All periods</span></button>
+      </div>
+      <div id="distTableWrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PCA PLOT OVERLAY -->
+<div class="pca-overlay" id="pcaOverlay">
+  <div class="pca-panel">
+    <div class="pca-header">
+      <div>
+        <div class="pca-title">Balkan PCA Plot</div>
+        <div class="pca-sub">Sub-PCA computed on 136 Balkan reference samples — optimized for intra-Balkan variation</div>
+      </div>
+      <button class="pca-close" onclick="closePCA()">✕</button>
+    </div>
+    <div class="pca-input-row">
+      <input type="text" id="pcaInput" placeholder="Paste G25 coordinates here..." />
+      <button class="btn btn-primary" style="margin:0;padding:8px 16px;font-size:0.78rem;" onclick="plotUser()">Plot</button>
+      <button class="btn btn-primary" style="margin:0;padding:8px 12px;font-size:0.78rem;background:#333;" onclick="resetPCAView()">Reset</button>
+    </div>
+    <div class="pca-dim-row">
+      <span class="pca-dim-label">X:</span>
+      <button class="pc-btn pc-btn-x active" onclick="setPCDim('x',0)">PC1</button>
+      <button class="pc-btn pc-btn-x" onclick="setPCDim('x',1)">PC2</button>
+      <button class="pc-btn pc-btn-x" onclick="setPCDim('x',2)">PC3</button>
+      <button class="pc-btn pc-btn-x" onclick="setPCDim('x',3)">PC4</button>
+      <span class="pca-dim-sep"></span>
+      <span class="pca-dim-label">Y:</span>
+      <button class="pc-btn pc-btn-y" onclick="setPCDim('y',0)">PC1</button>
+      <button class="pc-btn pc-btn-y active" onclick="setPCDim('y',1)">PC2</button>
+      <button class="pc-btn pc-btn-y" onclick="setPCDim('y',2)">PC3</button>
+      <button class="pc-btn pc-btn-y" onclick="setPCDim('y',3)">PC4</button>
+    </div>
+    <div class="pca-canvas-wrap">
+      <canvas id="pcaCanvas"></canvas>
+    </div>
+    <div class="pca-legend-bar" id="pcaLegend"></div>
+    <div class="pca-tooltip" id="pcaTooltip"></div>
+  </div>
+</div>
+
+<script>
+// === SOURCE POPULATIONS ===
+const SOURCES = {
+  "Paleo_Balkan": [0.1245456,0.1513373,0.0204728,-0.0221116,0.0286995,-0.0096847,0.0001639,-0.0008845,0.0061742,0.0299118,0.0023973,0.0070944,-0.0137463,-0.0037565,-0.0121211,-0.0018984,0.0072115,0.0019759,0.0069611,-0.0069911,-0.0088625,0.0040069,-0.000962,0.0039286,-0.0016455],
+  "Eastern_Roman_Anatolian": [0.1073731,0.1481632,-0.0318813,-0.0632749,-0.0014046,-0.0231908,0.0001687,-0.0052069,-0.0072632,0.018303,0.0043595,0.0033508,-0.0056643,0.0032042,-0.0141531,-0.0030666,0.0056132,0.0007277,0.0049216,-0.0047843,-0.0031803,0.002622,-0.0017634,-0.0007879,-0.0014277],
+  "Balto_Slavic": [0.1300254,0.1236844,0.0712377,0.057083,0.0374817,0.0217402,0.0085156,0.011635,0.0011552,-0.0182674,-0.0006992,-0.0066052,0.0129104,0.0181932,-0.0096314,-0.000272,0.0024466,0.000138,0.0016246,0.0014574,-0.0010717,-0.003066,0.0058419,-0.0065919,-0.0011954]
+};
+
+// Sub-sources for splitting Paleo_Balkan
+const ILLYRIAN = [0.1243859,0.1465071,0.0393463,0.0040999,0.0327894,0.0011899,0.0025067,0.0030798,0.0027433,0.0189841,0.0015850,0.0070336,-0.0136489,-0.0043525,-0.0077161,0.0013982,0.0083689,0.0014019,0.0042270,-0.0044539,-0.0064386,0.0013884,-0.0015956,0.0028147,-0.0057528];
+const THRACIAN = [0.1206524,0.1614692,0.0061597,-0.0533411,0.0286940,-0.0185793,0.0004028,-0.0016704,0.0077914,0.0369330,0.0040827,0.0073218,-0.0160481,0.0006160,-0.0200024,-0.0128296,0.0073266,0.0047115,0.0090804,-0.0103859,-0.0072965,0.0048281,-0.0034158,0.0034486,-0.0077950];
+
+// Display keys: 4-way output after splitting Paleo_Balkan
+const SRC_KEYS = ["Illyrian", "Thracian", "Eastern_Roman_Anatolian", "Balto_Slavic"];
+const SRC_COLORS = ["illyrian", "thracian", "roman", "slavic"];
+const SRC_LABELS = ["Illyrian", "Thracian", "Eastern Roman Anatolian", "Balto-Slavic"];
+
+// === BALKAN REFERENCE SAMPLES (embedded) ===
+const BALKAN_SAMPLES = [];
+
+const RAW_DATA = `Albania_BronzeAge_IronAge(1600BCE-300BCE),0.1231566,0.1523294,0.0274544,-0.0156332,0.0270818,-0.0087572,0.000987,-0.0007846,-0.0003274,0.0256952,0.0030206,0.005785,-0.0189098,-0.0070464,-0.0095546,-0.0063644,0.0069624,-0.00038,0.0027652,-0.0069534,-0.009084,0.0029182,-0.002687,0.0059286,-0.0058678
+Albania_EarlyModern_Roma(1500-1800CE),0.0859365,0.0619475,-0.060528,0.0176035,-0.018773,0.0119925,0.0005875,0.001615,0.011862,0.015946,-0.001786,-0.0028475,0.0026015,0.008326,-0.013233,-0.0104085,0.0068455,-0.001457,0.003771,-0.000375,0.002059,0.001113,0.000801,0.00235,0.0016165
+Albania_EarlyBronzeAge_outlier(2800-2200BCE),0.122929,0.118817,0.033564,0.045543,-0.008309,0.01255,0.008225,-0.000462,-0.026384,-0.012392,-0.002273,0.000749,-0.006838,0.002477,0.014251,-0.009679,-0.014212,0.003927,0.010307,-0.00988,-0.010731,-0.003091,0.014666,0.010845,-0.011496
+Albania_IronAge(800-300BCE),0.132035,0.156392,0.034695,-0.011628,0.035083,-0.001952,0.00329,0.000692,0.002659,0.031345,0.008607,0.016785,-0.023934,-0.004404,-0.013572,0.000663,0.011865,0.006714,0.011313,-0.010005,-0.007736,-0.000371,-0.002588,0.007832,-0.007784
+Albania_LateNeolithic_Chalcolithic(4500-3000BCE),0.123498,0.1858415,0.003394,-0.1022295,0.04647,-0.0471325,-0.003995,-0.0010385,0.037939,0.082553,0.0086065,0.013638,-0.023265,0.0030275,-0.040241,-0.017104,0.0095835,-0.0004435,0.0086735,-0.0171335,-0.011667,0.0051315,-0.0044985,-0.0023495,-0.008921
+Albania_MiddleBronzeAge(2200-1600BCE),0.125205,0.14319,0.019233,0.003876,0.032621,-0.019522,0.00658,-0.011999,0.008795,0.033531,0.001461,0.005095,-0.006541,-0.021469,-0.010043,0.004773,0.02725,-0.009755,0.001383,0.008754,-0.003993,0.006677,0.009737,0.01205,0.007424
+Albania_Medieval(600-1500CE),0.1206525,0.1543605,0.0143305,-0.03553,0.024312,-0.007251,-0.002115,-0.001269,0.003068,0.019864,0.0020295,0.005545,-0.013082,0.0008255,-0.0192725,-0.012596,0.010561,-0.002154,0.008296,-0.0155075,-0.009421,0.0030295,0.0003695,-0.0013855,0
+Albania_Modern(1500-1900CE),0.1220184,0.1486734,0.014934,-0.0221578,0.0270204,-0.0087572,0.002491,0.0023998,0.0008998,0.0174582,0.0027282,0.0060248,-0.0076114,0.006936,-0.0207924,0.0010872,0.0178106,0.00038,0.0054804,-0.0047522,-0.0116046,0.0032892,0.0015038,0.0046272,-0.0064664
+BosniaHerzegovina_Medieval(600-1500CE),0.126344,0.131003,0.065242,0.05168,0.030775,0.02761,0.009635,0.009692,-0.007363,-0.010752,-0.005846,-0.002248,0.004757,0.030552,-0.010858,-0.006099,-0.015255,-0.001394,0.006536,-0.009004,-0.008859,0.000124,0.015529,0.001325,0.002036`;
+
+// Parse all samples from the output file
+function loadSamples() {
+  // We already have all the data - parse it from the file content stored in JS
+  // For brevity we loaded partial above; the full set is loaded at page init via fetch or inline
+}
+
+// Full dataset will be loaded from inline data below
+let ALL_SAMPLES = [];
+
+// === MATH: Constrained Least Squares ===
+function solveHybrid(target) {
+  // Step 1: Stable 3-way solve (Paleo_Balkan + E.Roman + Slavic)
+  const src3 = [SOURCES["Paleo_Balkan"], SOURCES["Eastern_Roman_Anatolian"], SOURCES["Balto_Slavic"]];
+  const p3 = solveConstrained(target, src3);
+  
+  // Step 2: Split Paleo_Balkan portion between Illyrian and Thracian
+  const paleoPct = p3.proportions[0];
+  let bestAlpha = 0.5, bestDist = Infinity;
+  
+  // Golden section search for optimal alpha in [0,1]
+  for (let steps = 0; steps < 200; steps++) {
+    const alpha = steps / 199;
+    let dist = 0;
+    for (let k = 0; k < 25; k++) {
+      const pred = (paleoPct * alpha) * ILLYRIAN[k] + (paleoPct * (1 - alpha)) * THRACIAN[k]
+                 + p3.proportions[1] * src3[1][k] + p3.proportions[2] * src3[2][k];
+      dist += (target[k] - pred) ** 2;
+    }
+    if (dist < bestDist) { bestDist = dist; bestAlpha = alpha; }
+  }
+  
+  // Fine-tune around best alpha
+  const lo = Math.max(0, bestAlpha - 0.01), hi = Math.min(1, bestAlpha + 0.01);
+  for (let steps = 0; steps < 100; steps++) {
+    const alpha = lo + (hi - lo) * steps / 99;
+    let dist = 0;
+    for (let k = 0; k < 25; k++) {
+      const pred = (paleoPct * alpha) * ILLYRIAN[k] + (paleoPct * (1 - alpha)) * THRACIAN[k]
+                 + p3.proportions[1] * src3[1][k] + p3.proportions[2] * src3[2][k];
+      dist += (target[k] - pred) ** 2;
+    }
+    if (dist < bestDist) { bestDist = dist; bestAlpha = alpha; }
+  }
+  
+  return {
+    proportions: [
+      paleoPct * bestAlpha,           // Illyrian
+      paleoPct * (1 - bestAlpha),     // Thracian
+      p3.proportions[1],              // E. Roman
+      p3.proportions[2]               // Slavic
+    ],
+    distance: Math.sqrt(bestDist),
+    slavicPct: p3.proportions[2]  // Store for ghost removal
+  };
+}
+
+function solveConstrained(target, sources) {
+  // Robust 3-way constrained least squares using projected gradient + analytical subsets
+  const n = sources.length;
+  const d = target.length;
+  
+  function computeDist(p) {
+    let dist = 0;
+    for (let k = 0; k < d; k++) {
+      let pred = 0;
+      for (let i = 0; i < n; i++) pred += p[i] * sources[i][k];
+      dist += (target[k] - pred) ** 2;
+    }
+    return Math.sqrt(dist);
+  }
+  
+  function projectSimplex(v) {
+    const u = [...v].sort((a, b) => b - a);
+    let cumsum = 0, rho = 0;
+    for (let j = 0; j < n; j++) {
+      cumsum += u[j];
+      if (u[j] + (1 - cumsum) / (j + 1) > 0) rho = j;
+    }
+    let s = 0;
+    for (let j = 0; j <= rho; j++) s += u[j];
+    const theta = (s - 1) / (rho + 1);
+    return v.map(x => Math.max(x - theta, 0));
+  }
+  
+  let bestP = new Array(n).fill(1 / n);
+  let bestDist = computeDist(bestP);
+  
+  // Projected gradient descent from multiple starts
+  const starts = [new Array(n).fill(1 / n)];
+  for (let i = 0; i < n; i++) {
+    const s = new Array(n).fill(0.02);
+    s[i] = 1 - 0.02 * (n - 1);
+    starts.push(s);
+  }
+  
+  for (const start of starts) {
+    let p = [...start];
+    let lr = 0.5;
+    for (let iter = 0; iter < 1500; iter++) {
+      const grad = new Array(n).fill(0);
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < d; k++) {
+          let pred = 0;
+          for (let j = 0; j < n; j++) pred += p[j] * sources[j][k];
+          grad[i] += 2 * (pred - target[k]) * sources[i][k];
+        }
+      }
+      const pNew = projectSimplex(p.map((v, i) => v - lr * grad[i]));
+      if (computeDist(pNew) < computeDist(p)) { p = pNew; lr *= 1.05; }
+      else { lr *= 0.5; }
+      if (lr < 1e-15) break;
+    }
+    const dist = computeDist(p);
+    if (dist < bestDist) { bestDist = dist; bestP = [...p]; }
+  }
+  
+  // Also try analytical subsets
+  for (let mask = 1; mask < (1 << n); mask++) {
+    const active = [];
+    for (let i = 0; i < n; i++) if (mask & (1 << i)) active.push(i);
+    const k = active.length;
+    const A = [], b = [];
+    for (let i = 0; i < k; i++) {
+      A.push([]);
+      let bi = 0;
+      for (let j = 0; j < k; j++) {
+        let aij = 0;
+        for (let dd = 0; dd < d; dd++) aij += sources[active[i]][dd] * sources[active[j]][dd];
+        A[i].push(aij);
+      }
+      for (let dd = 0; dd < d; dd++) bi += sources[active[i]][dd] * target[dd];
+      b.push(bi);
+    }
+    const M = [], rhs = [];
+    for (let i = 0; i < k; i++) { M.push([...A[i], 1]); rhs.push(b[i]); }
+    M.push([...new Array(k).fill(1), 0]); rhs.push(1);
+    const sol = gaussSolve(M, rhs);
+    if (!sol) continue;
+    let valid = true;
+    for (let i = 0; i < k; i++) if (sol[i] < -1e-10) { valid = false; break; }
+    if (!valid) continue;
+    const p = new Array(n).fill(0);
+    for (let i = 0; i < k; i++) p[active[i]] = Math.max(0, sol[i]);
+    const s = p.reduce((a, b) => a + b, 0);
+    if (s < 1e-15) continue;
+    for (let i = 0; i < n; i++) p[i] /= s;
+    const dist = computeDist(p);
+    if (dist < bestDist) { bestDist = dist; bestP = [...p]; }
+  }
+  
+  return { proportions: bestP, distance: bestDist };
+}
+
+function gaussSolve(M, rhs) {
+  const n = M.length;
+  const aug = M.map((row, i) => [...row, rhs[i]]);
+  
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(aug[row][col]) > Math.abs(aug[maxRow][col])) maxRow = row;
+    }
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    
+    if (Math.abs(aug[col][col]) < 1e-15) return null;
+    
+    for (let row = col + 1; row < n; row++) {
+      const f = aug[row][col] / aug[col][col];
+      for (let j = col; j <= n; j++) aug[row][j] -= f * aug[col][j];
+    }
+  }
+  
+  const x = new Array(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = aug[i][n];
+    for (let j = i + 1; j < n; j++) x[i] -= aug[i][j] * x[j];
+    x[i] /= aug[i][i];
+  }
+  return x;
+}
+
+// === PARSE INPUT ===
+function parseCoords(text) {
+  text = text.trim();
+  // Remove any label prefix - find the first number (possibly negative)
+  const nums = text.match(/-?\d+\.?\d*(?:[eE][+-]?\d+)?/g);
+  if (!nums || nums.length < 25) return null;
+  // Take last 25 numbers (in case label contains numbers)
+  const coords = nums.slice(-25).map(Number);
+  if (coords.some(isNaN)) return null;
+  return coords;
+}
+
+// Globals
+let currentTarget = null;
+let currentResult = null;
+let ghostCoords = null;
+let currentMode = 'normal';
+
+function setMode(mode) {
+  if (mode === currentMode) return;
+  currentMode = mode;
+  document.getElementById('modeNormal').classList.toggle('active', mode === 'normal');
+  document.getElementById('modeGhost').classList.toggle('active', mode === 'ghost');
+  document.getElementById('modeHint').textContent = mode === 'normal' 
+    ? 'Calculate your Balkan ancestry breakdown and compare to reference populations.'
+    : 'Remove the Balto-Slavic component to reveal your pre-Slavic ancestry and compare to ancient populations.';
+  
+  // Clear all results — forces re-calculate
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('ghostResults').classList.remove('visible');
+}
+
+function runCalculator() {
+  const input = document.getElementById('coordInput').value;
+  const coords = parseCoords(input);
+  if (!coords) {
+    alert('Could not parse 25 G25 coordinates. Please check your input format.');
+    return;
+  }
+  
+  // Reset everything
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('ghostResults').classList.remove('visible');
+  
+  currentTarget = coords;
+  currentResult = solveHybrid(coords);
+  
+  if (currentMode === 'normal') {
+    displayResults(currentResult);
+    showCompareDistances();
+    document.getElementById('slavicCard').style.display = 'none';
+  } else {
+    // Ghost mode: skip original results, go straight to pre-Slavic
+    if (currentResult.proportions[3] > 0.005) {
+      doGhostRemoval();
+    } else {
+      alert('Slavic component is too small to remove. Try the Ancestry Calculator mode instead.');
+    }
+  }
+}
+
+function displayResults(result) {
+  const el = document.getElementById('results');
+  el.classList.add('visible');
+  
+  const bar = document.getElementById('admixBar');
+  const legend = document.getElementById('admixLegend');
+  
+  bar.innerHTML = '';
+  legend.innerHTML = '';
+  
+  for (let i = 0; i < SRC_KEYS.length; i++) {
+    const pct = result.proportions[i] * 100;
+    if (pct < 0.05) continue;
+    
+    const seg = document.createElement('div');
+    seg.className = `seg-${SRC_COLORS[i]}`;
+    seg.style.width = `${pct}%`;
+    seg.textContent = pct >= 8 ? `${pct.toFixed(1)}%` : '';
+    bar.appendChild(seg);
+    
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-dot" style="background:var(--${SRC_COLORS[i]})"></div>
+      <span>${SRC_LABELS[i]}</span>
+      <span class="legend-pct">${pct.toFixed(1)}%</span>`;
+    legend.appendChild(item);
+  }
+  
+  document.getElementById('fitDist').textContent = result.distance.toFixed(8);
+  
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function doGhostRemoval() {
+  
+  const pSlavic = currentResult.proportions[3];
+  if (pSlavic < 0.001 || pSlavic > 0.999) {
+    alert('Slavic proportion too small or too large to remove meaningfully.');
+    return;
+  }
+  
+  const slavicCoords = SOURCES["Balto_Slavic"];
+  ghostCoords = new Array(25);
+  for (let i = 0; i < 25; i++) {
+    ghostCoords[i] = (currentTarget[i] - pSlavic * slavicCoords[i]) / (1 - pSlavic);
+  }
+  
+  // Display
+  const ghostEl = document.getElementById('ghostResults');
+  ghostEl.classList.add('visible');
+  
+  // Run admixture on ghost coords
+  const ghostResult = solveHybrid(ghostCoords);
+  
+  const bar = document.getElementById('ghostAdmixBar');
+  const legend = document.getElementById('ghostAdmixLegend');
+  bar.innerHTML = '';
+  legend.innerHTML = '';
+  
+  for (let i = 0; i < SRC_KEYS.length; i++) {
+    const pct = ghostResult.proportions[i] * 100;
+    if (pct < 0.05) continue;
+    const seg = document.createElement('div');
+    seg.className = `seg-${SRC_COLORS[i]}`;
+    seg.style.width = `${pct}%`;
+    seg.textContent = pct >= 8 ? `${pct.toFixed(1)}%` : '';
+    bar.appendChild(seg);
+    
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-dot" style="background:var(--${SRC_COLORS[i]})"></div>
+      <span>${SRC_LABELS[i]}</span>
+      <span class="legend-pct">${pct.toFixed(1)}%</span>`;
+    legend.appendChild(item);
+  }
+  
+  document.getElementById('ghostFitDist').textContent = ghostResult.distance.toFixed(8);
+  
+  const display = document.getElementById('ghostCoords');
+  display.textContent = 'PreSlavic_Ghost,' + ghostCoords.map(v => v.toFixed(7)).join(',');
+  
+  // Auto-show ghost distance comparison
+  showDistances();
+  
+  ghostEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyGhost() {
+  if (!ghostCoords) return;
+  const text = 'PreSlavic_Ghost,' + ghostCoords.map(v => v.toFixed(7)).join(',');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy coordinates', 1500);
+  });
+}
+
+let allDists = [];
+
+function parseMidpointYear(name) {
+  const m = SAMPLE_META[name];
+  if (m) return m.y;
+  return null;
+}
+
+function getMeta(name) {
+  return SAMPLE_META[name] || {c:'',s:'',p:'',d:''};
+}
+
+function getPeriod(year) {
+  if (year === null) return 'all';
+  if (year >= 1900) return 'modern';
+  if (year < -1200) return 'bronze';
+  if (year < -200) return 'iron';
+  if (year < 600) return 'roman';
+  return 'medieval';
+}
+
+let allCompareDists = [];
+
+function showCompareDistances() {
+  if (!currentTarget || ALL_SAMPLES.length === 0) return;
+  
+  allCompareDists = ALL_SAMPLES.map(s => {
+    let d = 0;
+    for (let i = 0; i < 25; i++) d += (currentTarget[i] - s.coords[i]) ** 2;
+    const mid = parseMidpointYear(s.name);
+    return { name: s.name, dist: Math.sqrt(d), period: getPeriod(mid) };
+  });
+  
+  allCompareDists.sort((a, b) => a.dist - b.dist);
+  // Default to Modern in normal mode
+  document.querySelectorAll('#comparePeriodFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  const defaultBtn = document.querySelector('#comparePeriodFilters .filter-btn:nth-child(2)');
+  if (defaultBtn) defaultBtn.classList.add('active');
+  renderCompareDistTable('modern');
+}
+
+function filterComparePeriod(period, btn) {
+  document.querySelectorAll('#comparePeriodFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCompareDistTable(period);
+}
+
+function renderCompareDistTable(period) {
+  const filtered = period === 'all' ? allCompareDists : period === 'ancient' ? allCompareDists.filter(d => d.period !== 'modern') : allCompareDists.filter(d => d.period === period);
+  const wrap = document.getElementById('compareDistTableWrap');
+  if (filtered.length === 0) { wrap.innerHTML = `<p style="color:var(--text2);padding:20px;text-align:center;font-size:0.86rem;">No samples found.</p>`; return; }
+  let h = `<div class="dist-table-wrap"><table><thead><tr><th style="width:28px">#</th><th>Sample</th><th>Country</th><th>Period</th><th>Distance</th><th style="width:30px"></th></tr></thead><tbody>`;
+  filtered.forEach((d, i) => {
+    const m = getMeta(d.name);
+    const label = (d.name.includes(':') ? d.name.split(':')[1] : d.name).replace(/_/g,' ');
+    const dc = distColor(d.dist);
+    h += `<tr><td><span class="rank-num" style="background:${dc.bg};color:${dc.text}">${i+1}</span></td><td><span class="sample-name">${label}</span></td><td>${m.c}</td><td>${m.p}</td><td><span class="dist-val" style="color:${dc.text};background:${dc.bg}">${d.dist.toFixed(6)}</span></td><td><button class="act-btn" title="Copy coordinates" onclick="copySampleCoords('${d.name}')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+  wrap.innerHTML = h;
+}
+
+function showDistances() {
+  if (!ghostCoords || ALL_SAMPLES.length === 0) return;
+  
+  allDists = ALL_SAMPLES.map(s => {
+    let d = 0;
+    for (let i = 0; i < 25; i++) d += (ghostCoords[i] - s.coords[i]) ** 2;
+    const mid = parseMidpointYear(s.name);
+    return { name: s.name, dist: Math.sqrt(d), period: getPeriod(mid) };
+  });
+  
+  allDists.sort((a, b) => a.dist - b.dist);
+  // Default to Ancient in ghost mode
+  document.querySelectorAll('#periodFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  const defaultBtn = document.querySelector('#periodFilters .filter-btn:nth-child(3)');
+  if (defaultBtn) defaultBtn.classList.add('active');
+  renderDistTable('ancient');
+}
+
+function filterPeriod(period, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDistTable(period);
+}
+
+function distColor(dist) {
+  // Absolute distance: 0 = bright green, 0.08+ = full red
+  const t = Math.min(dist / 0.08, 1);
+  if (t < 0.01) return {text:'#4ade80', bg:'rgba(74,222,128,0.12)'};
+  if (t >= 1) return {text:'#ef4444', bg:'rgba(239,68,68,0.10)'};
+  // green → amber → red
+  let r, g, b;
+  if (t < 0.5) {
+    const s = t * 2;
+    r = Math.round(74 + s * 179);
+    g = Math.round(222 - s * 77);
+    b = Math.round(128 - s * 80);
+  } else {
+    const s = (t - 0.5) * 2;
+    r = Math.round(253 - s * 14);
+    g = Math.round(145 - s * 77);
+    b = Math.round(48 - s * 16);
+  }
+  return {text:`rgb(${r},${g},${b})`, bg:`rgba(${r},${g},${b},0.10)`};
+}
+
+
+function renderDistTable(period) {
+  const filtered = period === 'all' ? allDists : period === 'ancient' ? allDists.filter(d => d.period !== 'modern') : allDists.filter(d => d.period === period);
+  
+  const wrap = document.getElementById('distTableWrap');
+  wrap.style.display = 'block';
+  
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<p style="color:var(--text2);padding:24px;font-size:0.88rem;text-align:center;">No samples in this period.</p>`;
+    return;
+  }
+  
+  let h = `<div class="dist-table-wrap"><table><thead><tr><th style="width:28px">#</th><th>Sample</th><th>Country</th><th>Period</th><th>Distance</th><th style="width:30px"></th></tr></thead><tbody>`;
+  filtered.forEach((d, i) => {
+    const m = getMeta(d.name);
+    const label = (d.name.includes(':') ? d.name.split(':')[1] : d.name).replace(/_/g,' ');
+    const dc = distColor(d.dist);
+    h += `<tr><td><span class="rank-num" style="background:${dc.bg};color:${dc.text}">${i+1}</span></td><td><span class="sample-name">${label}</span></td><td>${m.c}</td><td>${m.p}</td><td><span class="dist-val" style="color:${dc.text};background:${dc.bg}">${d.dist.toFixed(6)}</span></td><td><button class="act-btn" title="Copy coordinates" onclick="copySampleCoords('${d.name}')"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></td></tr>`;
+  });
+  h += `</tbody></table></div>`;
+  wrap.innerHTML = h;
+}
+
+// === LOAD ALL SAMPLE DATA ===
+function initSamples() {
+  // Fetch the file from the same directory or parse inline
+  fetch('Balkan_filtered_renamed.txt')
+    .then(r => r.text())
+    .then(parseSampleData)
+    .catch(() => {
+      // Fallback: use inline data
+      parseSampleDataFromInline();
+    });
+}
+
+function parseSampleData(text) {
+  const lines = text.trim().split('\n');
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim().replace(/\r/g, '');
+    if (!line) continue;
+    const parts = line.split(',');
+    if (parts.length < 26) continue;
+    ALL_SAMPLES.push({
+      name: parts[0],
+      coords: parts.slice(1, 26).map(Number)
+    });
+  }
+}
+
+// Inline fallback - embed all data
+const INLINE_DATA = `PLACEHOLDER`;
+
+function parseSampleDataFromInline() {
+  if (ALL_SAMPLES.length > 0) return;
+  // Parse from the RAW_DATA block already in memory won't have all - use fetch approach
+}
+
+// On load, fetch the data file
+document.addEventListener('DOMContentLoaded', () => {
+  // Try loading from various paths
+  const paths = ['Balkan_filtered_renamed.txt', './Balkan_filtered_renamed.txt'];
+  
+  // Since we're self-contained, parse all data inline
+  parseSampleDataDirect();
+});
+
+
+let mapInstance = null;
+
+function getPopLabel(name) {
+  return name.includes(':') ? name.split(':')[0] : name;
+}
+
+function showMap(name) {
+  const pop = getPopLabel(name);
+  const coords = SITE_COORDS[pop];
+  if (!coords) { alert('No location data for this sample.'); return; }
+  const m = getMeta(name);
+  const shortId = name.includes(':') ? name.split(':')[1] : name;
+  
+  document.getElementById('mapTitle').textContent = m.s || m.c;
+  document.getElementById('mapSub').textContent = `${shortId} — ${m.p}, ${m.d}`;
+  document.getElementById('mapCoordText').textContent = `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
+  document.getElementById('mapOverlay').classList.add('visible');
+  
+  setTimeout(() => {
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    mapInstance = L.map('mapContainer').setView(coords, 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+    }).addTo(mapInstance);
+    L.marker(coords).addTo(mapInstance)
+      .bindPopup(`<b>${m.s}</b><br>${shortId}<br>${m.p}`).openPopup();
+  }, 100);
+}
+
+function closeMap() {
+  document.getElementById('mapOverlay').classList.remove('visible');
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+}
+
+function copySampleCoords(name) {
+  const s = ALL_SAMPLES.find(x => x.name === name);
+  if (!s) return;
+  const text = name + ',' + s.coords.map(v => v.toString()).join(',');
+  navigator.clipboard.writeText(text).then(() => {
+    // Brief visual feedback via the button
+    event.target.closest('.act-btn').style.color = 'var(--accent)';
+    setTimeout(() => { event.target.closest('.act-btn').style.color = ''; }, 800);
+  });
+}
+
+function parseSampleDataDirect() {
+  // All data is embedded in this giant string
+  const data = FULL_DATA;
+  const lines = data.trim().split('\n');
+  for (const line of lines) {
+    const l = line.trim();
+    if (!l || l.startsWith(',PC')) continue;
+    const parts = l.split(',');
+    if (parts.length < 26) continue;
+    ALL_SAMPLES.push({
+      name: parts[0],
+      coords: parts.slice(1, 26).map(Number)
+    });
+  }
+  console.log(`Loaded ${ALL_SAMPLES.length} samples`);
+}
+
+const FULL_DATA = `,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8,PC9,PC10,PC11,PC12,PC13,PC14,PC15,PC16,PC17,PC18,PC19,PC20,PC21,PC22,PC23,PC24,PC25
+Macedonian,0.1269754,0.1461801,0.024392,-0.0072853,0.0254637,-0.0027431,0.0010594,0.0037174,0.0020831,0.0081977,0.0036228,1.9e-05,0.000763,0.0045139,-0.0081302,-0.0012232,0.0024889,-0.0013904,0.0004066,-0.0023516,-0.004273,-0.0007249,0.0019303,-0.0015427,-0.0008112
+Macedonian_Skopje,0.1276914,0.1454191,0.0258681,-0.0048603,0.0258545,-0.0018928,0.0015515,0.0038632,0.0020197,0.007464,0.003914,-6.98e-05,0.0011933,0.0049171,-0.008178,-0.0022129,0.0018355,-0.0012102,0.0004367,-0.0023638,-0.0045309,-0.0011162,0.001916,-0.0014368,-0.0006925
+Macedonian_Northeast,0.127813,0.1432447,0.0285541,-0.0015699,0.025769,-0.0002472,0.0022597,0.0044584,0.0019942,0.0058488,0.0034455,-0.0006661,0.0016504,0.0053126,-0.0082067,-0.0023642,0.0019917,-0.0013102,0.0009558,-0.0019726,-0.004646,-0.0007201,0.001913,-0.0009798,-0.0004332
+Macedonian_East,0.1279212,0.1439709,0.0277714,-0.0026618,0.0257315,-0.0007737,0.0019648,0.0043633,0.0019609,0.0062459,0.0035093,-0.0005739,0.0014919,0.0049666,-0.0078778,-0.0020619,0.0019887,-0.001303,0.0007287,-0.0020343,-0.0045227,-0.0005962,0.0019822,-0.0011175,-0.0004302
+Macedonian_Southeast,0.1265254,0.1463933,0.0238203,-0.0091117,0.0250896,-0.0045847,-9.13e-05,0.0030276,0.001968,0.0068353,0.0020021,-0.0011141,0.0009359,0.0050916,-0.0080184,0.0022833,0.0044257,-0.0012567,0.0013864,-0.0025151,-0.0039174,0.0022553,0.002552,-0.0012776,-0.0009794
+Macedonian_Vardar,0.127215,0.1469408,0.0237136,-0.0080813,0.0254254,-0.0031049,0.000729,0.0036937,0.0020104,0.0082108,0.0035962,9.25e-05,0.0006498,0.004604,-0.0078103,-0.0008908,0.0022074,-0.0014548,0.0002057,-0.0023886,-0.0039573,-0.0004081,0.0018512,-0.0017172,-0.0006707
+Macedonian_Pelagonia,0.1271319,0.1474219,0.0230322,-0.0089696,0.0253116,-0.0033082,0.0004918,0.0038294,0.002062,0.008481,0.0037562,0.00026,0.0005992,0.0045104,-0.0077003,-0.0010151,0.001892,-0.0016065,-0.0001742,-0.0022509,-0.0036933,-0.000528,0.0015389,-0.0020048,-0.0006469
+Macedonian_Southwest,0.1270101,0.1478645,0.0227932,-0.0092621,0.0254416,-0.0025676,0.0009952,0.0038225,0.0020878,0.0095882,0.0043783,0.0009668,0.0002046,0.0048265,-0.0082411,-0.0022892,0.0011888,-0.0016859,-0.0002373,-0.0025457,-0.0038019,-0.0018922,0.0014289,-0.0021067,-0.0004228
+Macedonian_Polog,0.127524,0.1458649,0.0254514,-0.0058294,0.0261033,-0.0024029,0.0013682,0.0035323,0.0020704,0.0081294,0.0044352,0.0001917,0.0014585,0.0054612,-0.0090207,-0.002832,0.0015456,-0.001045,0.0003542,-0.0026522,-0.0047254,-0.0017801,0.0017534,-0.0018506,-0.0009778
+Macedonian_Torbesh,0.1239466,0.1485011,0.0185239,-0.0152214,0.0244472,-0.0058056,0.0002656,0.002866,0.0025742,0.0129757,0.0035687,0.0010837,-0.0013167,0.0009348,-0.0081181,0.0003736,0.0053244,-0.0016414,3.2e-06,-0.002441,-0.0046618,-0.0017386,0.0024371,-0.0013936,-0.0020476
+Aromanian,0.1227275,0.1444305,0.018263,-0.008732,0.0245005,-0.0015455,0.001987,0.0026215,0.0006745,0.0078635,0.0003155,0.000684,-0.0025665,0.0068845,-0.0136455,-0.0007645,0.0079285,-0.000626,0.00497,-0.004759,-0.0064235,0.0006945,0.0026905,0.000325,0.000392
+Albanian,0.1237918,0.1479214,0.0180657,-0.0146385,0.025743,-0.0038056,0.0012808,0.0026261,0.0033872,0.0150186,0.0005635,0.0021703,-0.0052491,0.0041999,-0.0110742,-0.0014847,0.0070937,-6.12e-05,0.0038243,-0.0046721,-0.0055833,-0.000122,0.0015094,-0.0003031,-0.0007129
+Albanian_North_County_Shkoder,0.126124,0.145846,0.021232,-0.0107973,0.02597,-0.0012873,0.0020157,0.003212,0.004651,0.01609,-0.0009737,0.0017797,-0.005803,0.007423,-0.0131647,-0.0015533,0.0081183,0.0007767,0.0054603,-0.005669,-0.007911,0.0002707,0.0028513,-0.000432,-0.0014897
+Albanian_North_County_Kukes,0.125562,0.1457283,0.020686,-0.0112437,0.025908,-0.001472,0.0019463,0.0030683,0.0045007,0.0157913,-0.0010463,0.001731,-0.005858,0.007231,-0.0130157,-0.001591,0.0079323,0.0007357,0.0053477,-0.0057393,-0.0079307,0.0002363,0.0027767,-0.000471,-0.001525
+Albanian_North_County_Diber,0.1254137,0.145907,0.020876,-0.011164,0.025725,-0.0014197,0.0019433,0.0031277,0.004555,0.0159017,-0.00099,0.0017713,-0.0058153,0.0072823,-0.0129927,-0.0015293,0.008031,0.0007663,0.0053933,-0.005669,-0.0079177,0.0002767,0.0027967,-0.0004437,-0.001513
+Albanian_North_County_Lezhe,0.1239493,0.1463016,0.0195138,-0.0142191,0.0260789,-0.0037602,0.0018352,0.0018527,0.0035859,0.0180258,-0.0008004,0.002255,-0.007514,0.0043062,-0.0130997,-0.0012149,0.0089521,0.0007319,0.0050811,-0.0053816,-0.0069995,0.0005341,0.0027,0.0007851,-0.0018377
+Albanian_Central_County_Durres,0.122178,0.1475277,0.0140743,-0.0151443,0.0260873,-0.003924,0.000134,0.0014407,0.0023407,0.013541,0.001064,0.0024277,-0.0071607,0.0039043,-0.0130873,-0.0023007,0.0081073,0.000351,0.0048543,-0.007354,-0.006484,0.0015007,0.0002807,0.000424,0.000334
+Albanian_Central_County_Tirana,0.1236167,0.1475776,0.0145914,-0.0148961,0.0264495,-0.0040147,1.45e-05,0.0015275,0.0025953,0.0137553,0.001148,0.0025749,-0.0069576,0.0041399,-0.0131504,-0.0023238,0.0081912,0.0003155,0.0048984,-0.0074657,-0.006525,0.0015216,0.0003379,0.0005447,0.000386
+Albanian_Central_County_Elbasan,0.1219077,0.1470073,0.0136977,-0.015611,0.0259007,-0.0038773,0.000124,0.001464,0.0023473,0.0135373,0.0010207,0.0024273,-0.007224,0.0039207,-0.0131207,-0.002324,0.0081307,0.0003607,0.0048773,-0.0073907,-0.006534,0.0014873,0.0002873,0.0004207,0.000334
+Albanian_South_County_Berat,0.1211787,0.1480257,0.0140653,-0.0185827,0.0248693,-0.0054817,0.000334,0.0020687,0.0030233,0.0148487,0.0011947,0.002331,-0.0056273,0.0027347,-0.011669,-0.0017093,0.0078917,-0.0001173,0.003444,-0.0052873,-0.005737,0.0006453,0.000961,0.0002463,-0.000621
+Albanian_South_County_Fier,0.1206573,0.148527,0.0144023,-0.020144,0.0245193,-0.006452,0.000685,0.0024713,0.0032573,0.0152957,0.001169,0.00239,-0.0047953,0.0020767,-0.0106573,-0.0014893,0.0075907,-0.0003877,0.0024437,-0.004055,-0.0050707,0.000175,0.0012743,-0.000161,-0.001211
+Albanian_South_County_Gjirokaster,0.120974,0.148639,0.0140793,-0.0207873,0.0240043,-0.0065963,0.0002623,0.0019437,0.0036233,0.015689,0.00143,0.002395,-0.0046713,0.00158,-0.0100563,-0.001083,0.007163,-0.00043,0.0023497,-0.00388,-0.004758,-0.0001647,0.001282,-0.0003157,-0.001095
+Albanian_South_County_Vlore,0.1209107,0.1488873,0.014015,-0.021364,0.0237387,-0.006857,0.0001863,0.0019387,0.003841,0.015904,0.0015137,0.0023977,-0.0044267,0.00125,-0.0096293,-0.000836,0.006954,-0.000522,0.0020283,-0.003484,-0.0044523,-0.0003433,0.0013143,-0.0004793,-0.0011437
+Albanian_South_County_Korce,0.1252199,0.1469472,0.0189766,-0.0120169,0.0242401,-0.004061,0.0003317,0.003451,0.0020881,0.0096494,0.0037708,0.000307,-0.000957,0.0030668,-0.0089066,-0.0016152,0.0044294,-0.0005612,0.0019646,-0.0033214,-0.0050148,-0.0005452,0.0014999,-0.0010897,-0.0007494
+Albanian_Gheg,0.1254582,0.1478887,0.021309,-0.0121827,0.0265991,-0.0031848,0.0022566,0.0032798,0.0035196,0.0152052,0.0005766,0.0020552,-0.0044246,0.004928,-0.011178,-0.0013979,0.0067785,-0.0002124,0.0037978,-0.004008,-0.0053274,-0.0005291,0.0021372,-2.7e-05,-0.0010399
+Albanian_Tosk,0.1220004,0.1494266,0.014305,-0.0200594,0.0242463,-0.0060873,0.0008898,0.0021848,0.0029601,0.0159802,0.0010091,0.002534,-0.0052433,0.0028523,-0.0102786,-0.0014017,0.00683,-0.0002322,0.0032878,-0.0038833,-0.004407,-0.0007123,0.0009304,-0.0007019,-0.0008162
+Albanian_North,0.125083,0.1459577,0.02042,-0.0121458,0.0258966,-0.0021876,0.001909,0.0026905,0.0042238,0.0166168,-0.000944,0.0019208,-0.0064154,0.0062603,-0.0130702,-0.001421,0.0083688,0.0007555,0.0052917,-0.0055918,-0.0076317,0.0003763,0.0027795,-1.72e-05,-0.0016342
+Albanian_Central,0.1225674,0.1473709,0.0141211,-0.0152171,0.0261458,-0.0039387,9.08e-05,0.0014774,0.0024278,0.0136112,0.0010776,0.0024766,-0.0071141,0.0039883,-0.0131195,-0.0023162,0.0081431,0.0003424,0.0048767,-0.0074034,-0.0065143,0.0015032,0.000302,0.0004631,0.0003513
+Albanian_South,0.1217881,0.1482052,0.0151077,-0.018579,0.0242744,-0.0058896,0.0003599,0.0023747,0.0031666,0.0142774,0.0018156,0.0019641,-0.0040955,0.0021416,-0.0101837,-0.0013466,0.0068058,-0.0004036,0.002446,-0.0040056,-0.0050066,-4.66e-05,0.0012663,-0.0003599,-0.000964
+Albanian_Kosovo,0.125359,0.150546,0.021863,-0.012084,0.02858,-0.001965,0.003708,0.002679,0.003019,0.018407,-0.002444,0.003994,-0.0075,0.007128,-0.009444,-0.002111,0.005842,0.000171,0.00579,-0.003766,-0.003436,-0.003084,0.001001,-0.001215,0.000691
+Albanian_Macedonia,0.1240319,0.1489477,0.0203147,-0.0141016,0.0265231,-0.0044452,0.0020961,0.0030598,0.0037792,0.0149735,0.0009555,0.0028225,-0.0031697,0.0038471,-0.0097689,-0.0005131,0.0067454,-0.0011081,0.003184,-0.002798,-0.0043623,-0.0009915,0.0017938,2.28e-05,-0.0005296
+Albanian_Montenegro,0.1268996,0.1491453,0.0236424,-0.0094475,0.0268956,-0.0011498,0.0023438,0.0040898,0.0037596,0.0140129,0.0005714,0.0017637,-0.0040961,0.0048394,-0.00901,-0.0015182,0.0053348,-0.0003853,0.0029714,-0.0034382,-0.0049274,-0.0009672,0.0019582,-0.0009896,-0.0007236
+Albanian_Serbia,0.1265079,0.1493552,0.0243884,-0.0097027,0.0275768,-0.0030045,0.0017982,0.004481,0.0044549,0.0140128,0.0017481,0.0016037,-0.0026888,0.003066,-0.0080686,-0.0005492,0.005403,-0.0013837,0.0019088,-0.0020052,-0.0033926,-0.0010224,0.0016768,-0.0009921,-0.0004276
+Albanian_Bosnia,0.1269773,0.1464976,0.0278625,-0.0036223,0.028381,0.0005524,0.0031666,0.0045553,0.003318,0.0112309,0.0001474,0.0010151,-0.0027405,0.0062293,-0.0092978,-0.0009791,0.0051111,-0.0005832,0.0030493,-0.0028046,-0.0049657,-0.0008962,0.0019045,-0.0009059,-0.0005803
+Albanian_Greece,0.1228472,0.1519285,0.0119683,-0.0235734,0.0234796,-0.0070244,0.0010282,0.0019625,0.0028691,0.0190697,-5.31e-05,0.0029792,-0.0064311,0.0024012,-0.0087366,-0.001024,0.0063013,-0.0003868,0.0032117,-0.0030582,-0.0031108,-0.0020297,0.000605,-0.0012768,-0.0005922
+Greek,0.1187533,0.1465034,0.0055811,-0.024915,0.0175306,-0.0082692,-0.0001723,0.000593,0.000914,0.0130976,0.0025808,0.0014836,-0.0024993,0.0012,-0.0083092,-0.0005731,0.006657,-0.0008369,0.0005008,-0.0029249,-0.0038576,-0.0001918,0.001071,-0.0005605,-0.0001729
+Greek_Bulgaria,0.12656,0.14968,0.014387,-0.014562,0.017125,-0.003969,0.000116,0.004816,-0.001601,0.005215,0.006201,-0.000873,0.002977,-2.1e-05,-0.002464,-0.000494,0.000433,-0.002398,-0.003191,-0.000796,-0.002275,-0.002142,0.001612,-0.002851,-0.000205
+Greek_Eastern_Macedonia_Thrace,0.1256175,0.141326,0.0209365,-0.0066345,0.024186,-0.001718,0.0025145,0.0044225,3.75e-05,0.0039265,0.0047235,-0.001987,0.003317,0.004927,-0.0101625,-0.001452,0.0033255,-0.0014465,0.0013765,-0.0029875,-0.005856,-0.0007715,0.0004515,-0.0030495,-0.000199
+Greek_Central_Macedonia,0.1215,0.1452,0.0128,-0.0161,0.0221,-0.0034,0.0012,0.0024,0.0011,0.0102,0.0013,0.0011,-0.0037,0.0059,-0.0125,-0.0021,0.0069,-0.0005,0.0033,-0.0052,-0.0052,-0.0009,0.0017,-0.0023,0.0013
+Greek_Western_Macedonia,0.1254,0.1461,0.0209,-0.0084,0.0249,-0.0027,0.0027,0.0046,0.0007,0.0087,0.0024,0.0004,-0.0016,0.0051,-0.0108,-0.002,0.0048,0.0008,0.0052,-0.0041,-0.0068,-0.0008,0.0021,-0.0012,-0.0016
+Greek_Epirus,0.121,0.1466,0.0138,-0.0182,0.0224,-0.0062,0.0025,0.002,0.0002,0.0129,0.0006,0.0017,-0.0036,0.0064,-0.0119,-0.001,0.0054,0.0006,0.0056,-0.004,-0.005,-0.0012,0.0019,0.0006,-0.0002
+Greek_Thessaly,0.1204,0.1462,0.0088,-0.016,0.0219,-0.0036,0.0002,0.0012,0.0009,0.0089,0.001,0.0017,-0.0051,0.005,-0.012,-0.0036,0.0049,-0.0003,0.0038,-0.0083,-0.006,0.0011,0.0018,-0.0006,0.0009
+Greek_Boeotia,0.127286,0.153095,0.016712,-0.019045,0.024252,-0.005603,-0.001141,0.005904,0.005805,0.012928,0.005912,-0.000391,0.002235,-0.000516,-0.002909,-0.001232,0.000559,-0.002646,-0.003639,-0.00032,-0.001826,-0.002355,0.001472,-0.002823,4.6e-05
+Greek_Phthiotida,0.125822,0.149775,0.009229,-0.017076,0.018294,-0.003441,8.7e-05,0.005158,0.001031,0.008148,0.006345,-0.000353,0.0022,0.000165,-0.003286,-0.001199,0.001134,-0.002665,-0.00351,-0.001141,-0.002473,-0.002457,0.001752,-0.003184,5.9e-05
+Greek_Corinthia,0.124914,0.153255,0.010947,-0.024591,0.023659,-0.009674,-0.002009,0.004639,0.006688,0.015533,0.003555,0.000302,0.000698,-0.002198,-0.000219,-0.000117,-0.000729,-0.002157,-0.003384,-0.000159,-0.000758,-0.002084,0.000912,-0.00224,0.000116
+Greek_Euboea_South,0.125903,0.155357,0.012161,-0.025309,0.021998,-0.00849,-0.002603,0.004357,0.005804,0.013627,0.005119,-0.000424,0.002289,-0.001217,-0.001752,-0.000415,-2e-06,-0.002554,-0.003843,-0.000154,-0.00145,-0.002416,0.001266,-0.003043,-2.1e-05
+Greek_Florina,0.130768,0.151162,0.024733,-0.008102,0.025216,-0.002001,0.000571,0.006583,0.003076,0.006947,0.00727,-0.001039,0.003279,0.000515,-0.003577,-0.001438,0.000824,-0.002614,-0.003322,-0.000382,-0.002374,-0.001927,0.00171,-0.002652,-0.000246
+Greek_Grevena,0.129511,0.148752,0.022634,-0.008144,0.025132,-0.003827,0.000765,0.006652,0.002578,0.00575,0.007481,-0.001605,0.004335,0.000785,-0.003381,-0.001006,0.000323,-0.002409,-0.002998,1.2e-05,-0.002128,-0.001497,0.001631,-0.00197,-0.000324
+Greek_Pella,0.130028,0.150174,0.022946,-0.008578,0.02387,-0.002735,-0.001134,0.00476,0.003151,0.007379,0.007229,-0.001007,0.003231,0.000483,-0.003471,-0.001294,0.00081,-0.002615,-0.003381,-0.00038,-0.002322,-0.002009,0.001665,-0.002759,-0.000251
+Greek_Kastoria,0.130315,0.147917,0.024076,-0.006905,0.025795,-0.00138,0.000462,0.006454,0.002522,0.005641,0.007732,-0.001382,0.003932,0.000886,-0.003867,-0.00137,0.000965,-0.002715,-0.003497,-0.000379,-0.002539,-0.001785,0.001847,-0.002859,-0.000289
+Greek_Central_Macedonia_Rural,0.121461,0.140244,0.019066,-0.009146,0.024051,-0.001536,0.003085,0.002896,0.000849,0.011239,-0.000227,0.000559,-0.001081,0.009332,-0.014161,-0.003721,0.005698,0.000581,0.004754,-0.003325,-0.005944,-0.002418,0.003029,-0.001301,-0.001077
+Greek_Macedonia,0.1253481,0.1471741,0.0193194,-0.0108838,0.0242914,-0.003129,0.0010856,0.0039359,0.0019626,0.009006,0.0038642,1.76e-05,-7.08e-05,0.0031685,-0.0078678,-0.0018605,0.0033846,-0.0010573,0.0004626,-0.0024109,-0.0044595,-0.0010975,0.0020697,-0.0019751,-0.0004624
+Greek_Western_Thrace,0.1183,0.1432,0.0097,-0.0205,0.0222,-0.0038,-0.0001,0.0003,0.0037,0.0173,0.0004,0.0029,-0.008,-0.0002,-0.009,0.0037,0.0101,-0.0004,0.0008,-0.0015,-0.003,0.0006,-0.0008,-0.0021,0.0027
+Greek_Northern_Thrace,0.1216,0.1371,0.0167,0.0004,0.0268,-0.0062,0.0024,0.0022,0.0,0.0064,0.0024,0.0026,-0.0069,0.0036,-0.0115,0.0005,0.0093,0.0018,0.004,-0.0031,-0.0057,0.0006,0.003,0.0008,-0.0008
+Greek_Eastern_Thrace,0.1203,0.1447,0.0106,-0.0205,0.0202,-0.004,0.001,-0.0016,0.0013,0.0093,0.0017,0.0024,-0.0035,0.0046,-0.0128,-0.002,0.0071,0.0014,0.0034,-0.0061,-0.0051,-0.0007,0.0021,-0.0019,0.0024
+Greek_Thrace,0.12422,0.1406297,0.0192131,-0.0069823,0.0239269,-0.0019634,0.0023166,0.0029543,0.0002429,0.005316,0.0038126,-0.000628,0.0001337,0.0045451,-0.0104857,-0.000888,0.0049577,-0.0007389,0.0018303,-0.0031714,-0.0054069,-0.0004674,0.0006731,-0.0023423,0.0002154
+Italian_Aosta_Valley,0.1248,0.1478,0.0423,0.0085,0.0385,-0.0004,0.0041,0.0007,0.012,0.0192,-0.0035,0.0106,-0.0096,-0.0071,0.0047,0.0007,0.0009,0.0023,0.0068,-0.0004,0.0005,-0.0025,-0.0014,0.0026,0.0018
+Italian_Piedmont,0.1225,0.1497,0.0313,-0.0055,0.0372,-0.0024,-0.0002,0.0002,0.0133,0.0263,-0.0003,0.0074,-0.0116,-0.0054,-0.0009,0.0016,0.0028,-0.0008,0.0028,-0.0046,-0.0009,-0.0012,-0.0039,0.0011,0.0003
+Italian_Liguria,0.1246,0.1494,0.0277,-0.0158,0.0297,-0.006,-0.0037,0.0023,0.0083,0.0259,0.0018,0.0104,-0.0187,-0.0061,-0.0045,-0.0058,-0.0033,0.0009,0.0052,-0.0084,-0.0001,0.0027,0.0014,0.0015,-0.0031
+Italian_Lombardy,0.1233,0.15,0.0289,-0.0162,0.0305,-0.0042,-0.002,-0.0008,0.01,0.0284,0.0014,0.0095,-0.0162,-0.0078,-0.0083,-0.0034,-0.0025,0.002,0.006,-0.012,0.0016,0.0023,0.0014,0.0025,-0.0012
+Italian_Emilia,0.1246,0.1497,0.0255,-0.016,0.0295,-0.0064,-0.0035,0.0011,0.0068,0.0234,0.0023,0.0105,-0.0192,-0.006,-0.006,-0.0064,-0.0018,0.0009,0.0061,-0.0074,-0.0003,0.0016,0.0021,0.0011,-0.0049
+Italian_Romagna,0.1188,0.1489,0.0147,-0.0198,0.0257,-0.004,-0.0004,0.0006,0.0078,0.0244,-0.0009,0.002,-0.0081,-0.0021,-0.0072,-0.0004,0.0046,0.0007,0.0031,-0.0022,-0.0055,0.0011,-0.0043,0.0063,-0.0001
+Italian_Trentino,0.1242,0.1458,0.04,-0.0016,0.0391,-0.008,0.0064,0.003,0.0076,0.0239,0.0011,0.0072,-0.0115,-0.0068,-0.0046,-0.0017,0.005,-0.0009,0.0036,-0.0018,0.0033,0.0064,0.0006,-0.0095,-0.0047
+Italian_Friuli,0.1273,0.1484,0.0322,-0.0003,0.0366,-0.0026,-0.0019,-0.0025,0.0036,0.0207,0.0021,0.0077,-0.0088,-0.0001,-0.0081,0.0028,0.004,-0.0016,0.0068,-0.0085,-0.0052,0.0003,0.0021,0.001,-0.0006
+Italian_Veneto,0.1288,0.1496,0.0324,-0.0054,0.0329,-0.0062,-0.0044,0.0013,0.0041,0.0269,0.0018,0.0098,-0.0185,-0.0032,-0.0058,-0.0017,0.0016,0.0022,0.0059,-0.0101,-0.0028,0.0006,-0.0037,0.0021,0.0003
+Italian_Tuscany,0.1196,0.1508,0.0193,-0.016,0.0306,-0.0036,-0.0008,0.0012,0.0104,0.0222,0.0003,0.0055,-0.0112,-0.007,-0.003,-0.0024,0.0025,0.0001,0.0041,-0.0015,-0.0036,-0.0021,-0.0049,0.0045,-0.0034
+Italian_Umbria,0.1175,0.1478,0.0099,-0.0223,0.0282,-0.0114,-0.0024,-0.0015,0.0065,0.0172,0.003,0.0092,-0.0176,-0.0066,-0.0037,-0.0073,0.0002,-0.0016,0.0058,0.001,0.0002,-0.0005,0.0031,-0.0007,-0.0127
+Italian_Marche,0.1158,0.1521,0.005,-0.0274,0.0217,-0.0111,-0.0018,-0.0004,0.0026,0.0192,0.0019,0.0025,-0.0087,-0.0006,-0.0065,-0.0082,-0.0068,0.0001,0.0003,-0.0051,-0.0053,0.0009,0.0013,-0.0012,-0.0053
+Italian_Lazio,0.1154,0.1479,0.0061,-0.0283,0.0214,-0.012,-0.0013,-0.0018,0.0046,0.0225,0.0011,0.0034,-0.0121,-0.0018,-0.007,-0.0024,0.0052,0.0007,0.004,-0.0006,-0.0015,0.0034,0.0018,0.0009,-0.0043
+Italian_Abruzzo,0.1118,0.1455,-0.0025,-0.0346,0.0136,-0.0136,0.0001,-0.0033,0.0032,0.0225,-0.0014,0.0016,-0.007,-0.0023,-0.0049,-0.0068,0.0001,0.0005,0.0035,-0.001,-0.0055,0.0043,0.0008,0.0024,-0.0009
+Italian_Molise,0.1111,0.1467,-0.0028,-0.0352,0.017,-0.0127,-0.0012,-0.0027,0.0045,0.0223,-0.0011,0.0034,-0.0086,-0.0015,-0.0064,-0.0083,-0.003,0.0016,0.0032,-0.0006,-0.0024,0.0031,0.0018,0.0013,-0.0029
+Italian,0.1171,0.1487,0.0133,-0.0221,0.0248,-0.0091,-0.0009,-0.0007,0.0057,0.0219,0.0003,0.0057,-0.0106,-0.0034,-0.0054,-0.0042,-0.0001,0.0008,0.0037,-0.0037,-0.0024,0.0013,-0.0002,0.0012,-0.0025
+Swiss_Italian,0.12217,0.141159,0.023256,-0.014535,0.026774,-0.002789,0.000235,0.003692,0.00934,0.020228,0.000758,0.003097,-0.011199,-0.003486,-0.003076,0.001945,0.006128,-0.002492,0.002095,-0.002293,0.002329,-0.000247,-0.001479,0.006145,-0.000519
+Bulgarian,0.1238011,0.139101,0.0305172,0.0042413,0.0258935,0.0036207,0.0042859,0.005911,-0.0005415,0.0028594,0.0006608,-0.000882,0.0007476,0.0091864,-0.0129262,0.0002206,0.0066902,-0.0015695,0.0047482,-0.003308,-0.0069268,0.0013054,0.0031705,-0.0003476,-0.0007775
+Bulgarian_Northcentral,0.1224367,0.1385912,0.0290319,0.0033915,0.0254086,0.0042498,0.0043549,0.005843,-0.0010872,0.003,5.01e-05,-0.0008154,6.2e-05,0.0102766,-0.014164,-1.61e-05,0.0077265,-0.0017668,0.004941,-0.0042798,-0.0086678,0.0012732,0.0036867,-0.0009055,-1.33e-05
+Bulgarian_Northeast,0.1216773,0.1393519,0.0251185,0.0016795,0.024781,0.0027318,0.0038638,0.0049464,-0.0016922,0.0038895,3.98e-05,-0.0006447,-0.0004169,0.0095155,-0.0147725,0.0001161,0.0077414,-0.0011263,0.0051008,-0.0044643,-0.0078042,0.0011554,0.0036958,-9.5e-05,-0.000447
+Bulgarian_Northwest,0.1234909,0.1377797,0.0342313,0.0074258,0.0265116,0.0048656,0.0047076,0.0067297,-0.0002485,0.0022314,-0.0004122,-0.0009673,0.0002296,0.0094528,-0.0128391,0.0026886,0.0087314,-0.00206,0.0059788,-0.0025193,-0.0066052,0.0019575,0.0031626,0.0008203,-0.0013318
+Bulgarian_Southcentral_Rhodopes,0.1247418,0.1403393,0.027539,0.0008993,0.0254314,0.0023761,0.0037899,0.0053751,-0.0006815,0.0027273,0.0022779,-0.0013276,0.0017104,0.0088794,-0.0125162,-0.0028671,0.0041308,-0.001479,0.0032619,-0.0035447,-0.0071227,0.0003095,0.0026189,-0.0016168,-0.0001201
+Bulgarian_Southeast_Thrace,0.1222001,0.1413318,0.0217372,-0.0019214,0.0242507,0.0003222,0.003549,0.0043766,-0.0015676,0.0038422,0.0014198,-0.0005624,0.0002867,0.0085827,-0.0146959,-0.0021295,0.0055867,-0.0008418,0.0043557,-0.0041082,-0.0062931,0.0009308,0.00258,-0.0008096,-0.0015229
+Bulgarian_Southwest_Pirin,0.1281736,0.1404574,0.0324888,0.00253,0.0253801,0.0021356,0.0029339,0.0059697,0.0013349,0.003623,0.0029734,-0.0014638,0.0023064,0.0054418,-0.0078779,-0.0020338,0.0024562,-0.0016009,0.0016442,-0.0013484,-0.0047946,0.0001993,0.0022016,-0.0005702,-0.0001512
+Bulgarian_Sofia,0.1239333,0.1384595,0.033598,0.0069941,0.0268867,0.0048868,0.004984,0.00638,-0.000408,0.0023497,0.0002238,-0.0006906,0.0010228,0.0100876,-0.0131859,0.0012529,0.0072658,-0.0015867,0.0054071,-0.0034321,-0.0071252,0.0017568,0.0035322,-0.0003732,-0.0009523
+Bulgarian_Ukraine,0.128821,0.148796,0.016268,-0.009443,0.01924,-7.5e-05,0.001101,0.005626,-0.001468,0.001702,0.007174,-0.002111,0.005119,0.000954,-0.002075,0.000261,-0.000539,-0.002005,-0.00253,-0.00011,-0.001843,-0.000757,0.001576,-0.001246,-0.000501
+Gagauz,0.121664,0.134388,0.020029,-0.002907,0.019559,0.001333,0.006867,0.004692,-0.003636,0.003624,-0.001642,-0.002081,-0.00147,0.010123,-0.01045,-0.004744,0.003433,-0.000267,0.003603,-0.002904,-0.006489,-0.000934,0.003684,-0.004927,6.7e-05
+Pomak,0.1212957,0.1363646,0.0254073,-0.0008373,0.0230377,0.0017627,0.0040946,0.004485,-0.0012846,0.0019873,-0.0007229,-0.0005209,0.0010434,0.0088634,-0.0131767,0.0039939,0.0100152,-0.0021242,0.0026059,-0.0040091,-0.0101644,0.002237,0.002166,-3.04e-05,0.0006102
+Pomak_Bulgaria,0.1238,0.1405,0.0277,0.0023,0.0274,0.0026,0.005,0.0047,-0.0009,0.0011,-0.0005,-0.0014,0.0029,0.0097,-0.0161,0.0055,0.0135,-0.0022,0.0023,-0.0068,-0.0125,0.0013,0.0017,-0.0024,0.0012
+Pomak_Greece,0.122,0.1352,0.0256,0.0016,0.0236,0.0014,0.0047,0.0053,-0.0039,-0.0003,-0.0017,-0.0014,0.0022,0.0063,-0.0137,0.0084,0.0148,-0.0034,0.0014,-0.0036,-0.0117,0.0013,0.0003,-0.0002,0.0002
+Turkish_Macedonia,0.118087,0.1333937,0.022922,-0.006412,0.018113,0.001288,0.0025837,0.003455,0.0009463,0.005162,3.13e-05,0.0012373,-0.0019697,0.0105903,-0.00973,-0.0019183,0.0017457,-0.0007727,0.0041177,-0.0016273,-0.0062933,0.004111,0.004498,0.0025087,0.0004307
+Romanian,0.1260259,0.1341655,0.0375995,0.012675,0.0293634,0.006594,0.0049315,0.0068493,0.0005114,0.0006797,-0.0012269,-0.0013068,-0.0015214,0.0102416,-0.0097769,0.00221,0.0051186,-0.0002087,0.0040519,-0.0041989,-0.0052324,0.0014095,0.0025583,0.0012279,-0.0006407
+Romanian_Wallachia,0.1233,0.1368,0.0315,0.0049,0.0251,0.0051,0.0046,0.0063,-0.0005,0.0033,0.0,-0.0002,-0.0003,0.0112,-0.0136,-0.0008,0.0039,-0.0014,0.0049,-0.0056,-0.0095,0.0016,0.0037,-0.0028,-0.0002
+Romanian_Oltenia,0.1242747,0.137017,0.0360718,0.0093313,0.0269027,0.0048846,0.0044873,0.0072575,0.0003268,0.001263,-0.0011817,-0.001296,0.0003558,0.0092558,-0.0124191,0.0049924,0.0096005,-0.0025337,0.0058753,-0.0021929,-0.007119,0.0020391,0.0023433,0.0018382,-0.0014247
+Romanian_Dobruja,0.1228,0.1369,0.0298,0.0043,0.0247,0.0042,0.0041,0.0058,-0.0012,0.0038,0.0002,-0.0006,-0.0003,0.0105,-0.014,0.0008,0.0056,-0.0012,0.0051,-0.0051,-0.0087,0.0013,0.0038,-0.001,0.0002
+Montenegrin,0.1260388,0.1414516,0.036587,0.0083436,0.0305819,0.0049956,0.0055561,0.0053522,0.0012018,0.006001,-0.0013467,-0.0002093,-0.0017732,0.0086492,-0.0100944,0.0009264,0.0077625,-0.000837,0.0052286,-0.0014214,-0.003415,-0.000265,0.002329,-5.05e-05,-0.0006146
+Serbian,0.1280508,0.1375433,0.043672,0.0193482,0.0325925,0.0090496,0.0062079,0.0063151,0.000787,-0.0003706,-0.0019414,-0.0019493,0.0019779,0.0122571,-0.0110822,-0.000564,0.0045331,-0.0004545,0.0042586,-0.0014406,-0.0062266,-0.0006994,0.0026178,-0.0004154,-0.0006808
+Serbian_Montenegro,0.1259072,0.1409309,0.0375719,0.0093305,0.0304452,0.0052892,0.0057216,0.0055085,0.0008184,0.0054551,-0.0011006,-0.0005234,-0.001688,0.0084025,-0.0104452,0.0018422,0.0087755,-0.001066,0.0054594,-0.0013458,-0.0032138,0.0002448,0.0024826,0.000266,-0.000763
+Serbian_Kosovo,0.1254584,0.1397808,0.0376134,0.0100714,0.0298026,0.005598,0.0057166,0.0058882,0.0004222,0.0039997,-0.000727,-0.000679,-0.0003403,0.0093232,-0.0114359,0.0016781,0.0078698,-0.0009895,0.0058151,-0.0018688,-0.0043138,0.0009316,0.0029668,0.0003039,-0.0010658
+Serbian_South_East,0.1250097,0.1386306,0.0376549,0.0108123,0.0291599,0.0059067,0.0057117,0.006268,2.59e-05,0.0025443,-0.0003533,-0.0008347,0.0010074,0.0102439,-0.0124266,0.001514,0.0069642,-0.000913,0.0061708,-0.0023918,-0.0054138,0.0016183,0.0034509,0.0003418,-0.0013686
+Bosnian_Sandzak,0.1275243,0.1409922,0.0355568,0.0082834,0.0306706,0.0058116,0.0053578,0.0050952,0.0017395,0.0056671,-0.0018772,-0.0003222,-0.0014365,0.0107826,-0.0108147,-0.0008699,0.0045954,1.94e-05,0.0042676,-0.0029704,-0.0065772,-0.000699,0.0020786,-0.0007361,-0.0005898
+Macedonia_Medieval,0.117238,0.131003,0.043369,0.010659,0.032006,-0.00251,0.011986,0.002308,0.003068,-0.00164,-0.005521,-0.003747,-0.005649,0.013074,-0.015201,-0.014187,-0.008736,0.009248,0.004399,-0.0005,0.003244,0.001978,0.007641,-0.006025,0.000479
+Albania_Ottoman,0.1220184,0.1486734,0.014934,-0.0221578,0.0270204,-0.0087572,0.002491,0.0023998,0.0008998,0.0174582,0.0027282,0.0060248,-0.0076114,0.006936,-0.0207924,0.0010872,0.0178106,0.00038,0.0054804,-0.0047522,-0.0116046,0.0032892,0.0015038,0.0046272,-0.0064664
+Albania_Medieaval_Kënetë_Northeastern_Durrës,0.1161,0.155376,0.012445,-0.034884,0.017234,-0.001394,-0.00423,-0.004615,-0.001636,0.016948,0.006008,0.007643,-0.011447,0.000275,-0.016965,-0.014452,0.012126,-0.008615,0.010056,-0.014507,-0.011605,0.004946,-0.004314,-0.001566,-0.001676
+Albania_Medieval_Shtikë_Southeastern_Kolonja,0.125205,0.153345,0.016216,-0.036176,0.03139,-0.013108,0.0,0.002077,0.007772,0.02278,-0.001949,0.003447,-0.014717,0.001376,-0.02158,-0.01074,0.008996,0.004307,0.006536,-0.016508,-0.007237,0.001113,0.005053,-0.001205,0.001676
+Albania_Medieval,0.1190437,0.146033,0.009599,-0.0236544,0.0229702,-0.0066877,-0.0001034,0.0012098,0.00336,0.0190683,0.0023616,0.0042966,-0.0101961,0.0034642,-0.0197564,-0.0042871,0.0138582,0.0004155,0.0063788,-0.008897,-0.0105769,0.0038372,0.0014714,0.0011034,-0.0033339
+Montenegro_Medieval,0.1276444,0.1404331,0.0460089,0.020672,0.0287524,0.0113947,0.0044314,0.0063953,-0.0025129,5.2e-05,-0.0009511,-0.0037896,-0.0006159,0.01158,-0.0113426,0.0003977,0.0083259,0.0015746,0.004238,-0.003877,-0.0064173,-0.0009009,0.0014964,-0.0030469,-0.0007699
+Bulgaria_Medieval,0.12236,0.133542,0.0130105,-0.0040375,0.0116945,0.0043225,-0.0003525,0.0016155,-0.0052155,0.0025515,0.0005685,0.0028475,0.0060955,0.0063995,-0.007736,0.004972,0.0075625,0.0002535,0.0015715,-0.0026265,-0.00549,-0.001051,0.0069015,0.0018075,-0.0035925
+Croatia_Medieval,0.1234349,0.136913,0.0460769,0.0323584,0.0369812,0.0119612,0.0059992,0.0117176,0.0022498,-0.0113923,-0.0001624,-0.0052348,0.0089031,0.0172392,-0.0099888,-0.0002595,0.0006537,0.0009536,0.0034306,-0.0030204,-0.0019911,-0.0032614,0.0059656,-0.0047377,0.0003808
+Serbia_Ottoman,0.1255847,0.1296493,0.0560653,0.0424207,0.0414437,0.0085523,0.010184,0.006923,-0.0002727,-0.0060137,-0.0040597,-0.0058947,0.006095,0.0158267,-0.0137983,0.0005743,0.005172,0.0009713,0.005489,0.0064197,-0.0017467,-0.005111,-0.0002053,-0.0006027,0.0010377
+Serbia_Early_Medieval_Slavic,0.126344,0.149283,0.046009,0.013566,0.032006,0.004183,0.00282,0.007384,0.001636,0.002187,-0.000325,-0.005395,0.011596,0.02257,-0.016151,-0.011933,-0.001565,-0.000507,0.007416,0.000375,-0.00861,-0.00136,-0.001109,-0.011809,0.004071
+Roman_Celtic,0.127482,0.1518215,0.037901,-0.004522,0.033545,-0.001813,0.000118,0.008538,0.012681,0.023691,-0.003897,0.006969,-0.010035,-0.007432,-0.002443,-0.012861,-0.009127,-0.00019,0.005217,-0.004565,-0.001186,-0.001237,0.002404,-0.001988,-0.000838
+Roman_Dacian,0.122929,0.140143,0.017348,-0.017442,0.032314,-0.006136,-0.010575,-0.004384,0.004704,0.023691,0.005684,0.002248,-0.009812,-0.00812,-0.000679,0.007027,0.007302,0.005194,0.004148,-0.006878,-0.010107,0.006059,-0.006162,0.004217,-0.001676
+Roman_Illyrian,0.1167319,0.1500162,0.0125289,-0.0241173,0.0246368,-0.0097923,0.0008486,0.0007308,0.0049199,0.0241868,0.0002887,0.0060531,-0.0129499,-0.0012922,-0.0089727,-0.0075944,-0.0022528,0.0005419,0.0045881,-0.0056207,-0.005934,0.0016693,-0.0005067,0.0021689,0.0002728
+Roman_Moesia,0.1236478,0.1524362,0.0177247,-0.024327,0.0305806,-0.0101136,0.0007916,0.0005101,0.0067708,0.026712,0.0015127,0.0077063,-0.0110478,-0.0014269,-0.0149722,-0.0056945,0.0089896,-0.0001866,0.0064569,-0.0075694,-0.0079399,0.0021281,-0.0001168,0.002207,-0.0020797
+Albania_IA,0.1277309,0.1518514,0.0313816,-0.0106352,0.0339928,-0.0038002,0.0024963,0.0010224,0.0067785,0.030783,0.003105,0.013319,-0.0197412,-0.0062445,-0.0080122,0.0018008,0.009834,0.0041055,0.0059628,-0.0056748,-0.0035726,0.0004416,-0.0026195,0.002288,-0.0029271
+Albania_BA,0.1239248,0.1520755,0.0274356,-0.0108609,0.0297746,-0.0071814,0.0017331,-0.0012115,0.0012018,0.0253536,0.0026794,0.0062945,-0.0166872,-0.0094959,-0.0091441,-0.0016241,0.0129894,0.0003008,0.0043838,-0.0068156,-0.005038,0.0023031,-0.0019719,0.0071094,-0.0037721
+Bulgaria_IA,0.118945,0.1639065,0.0078818,-0.0536826,0.0300979,-0.0218093,-0.0001646,-0.0019384,0.0115759,0.042789,0.0035075,0.0074333,-0.0179731,-0.0003304,-0.0219323,-0.0127419,0.0089314,0.002521,0.0075168,-0.0107052,-0.0102694,0.0045008,-0.0017872,0.003398,-0.0064066
+Bulgaria_BA,0.1220751,0.1516948,0.0278598,-0.0224889,0.0427002,-0.0154435,0.0030256,0.0004614,0.0195832,0.0338958,0.0033899,0.0059574,-0.0100904,-0.0027009,-0.0152176,0.0093808,0.019525,0.0015835,0.0055306,-0.0008911,0.0032288,0.005549,-0.0059005,-0.016689,0.0007485
+Romania_BA,0.1250632,0.1490289,0.0495914,0.00323,0.0594341,-0.0034512,-0.0003231,0.0066056,0.0259235,0.0329619,0.0020096,0.0046458,-0.00708,0.0003098,-0.0093986,0.0062646,0.0150266,0.0011244,0.0044938,0.0062688,0.0062856,0.0076819,-0.0069944,-0.0265549,0.0001945
+Montenegro_BA,0.1265967,0.1507496,0.0301277,-0.0095106,0.0268082,-0.0057327,-0.0017756,0.0005384,0.0040451,0.0256952,0.004168,0.0091417,-0.0138749,-0.0084102,-0.0095908,-0.0017237,0.0041868,0.0006052,0.006732,-0.0090878,-0.0069599,0.0041904,-0.0008217,0.0058373,-0.0029803
+Serbia_Mokrin_BA,0.1270265,0.147333,0.0475172,0.012429,0.0441682,0.0009037,0.002491,0.0028338,0.013924,0.0219338,0.0012212,0.0023619,-0.0073558,-0.0002147,-0.0085558,1.59e-05,0.0056326,0.0011503,0.0033436,-1.49e-05,0.0009184,0.0041449,-0.0029628,-0.0085024,-0.0035062
+Croatia_IA,0.1258262,0.1488211,0.0355523,-0.0015269,0.0349714,-0.0005831,0.0001068,0.0024545,0.0100215,0.0272195,-0.0028492,0.0088421,-0.0157174,-0.0088955,-0.0032204,0.0021094,0.0073135,0.001739,0.0050508,-0.0037064,-0.0028813,0.0047101,-0.0014342,0.0016651,-0.0026126
+Croatia_BA,0.1245051,0.1487359,0.0284872,-0.0074787,0.0334972,-0.0048055,0.0003615,-0.0009762,0.0065448,0.0263962,0.0005122,0.0086808,-0.0169472,-0.0068917,-0.0066711,-0.0024274,0.0061882,0.0010523,0.0050762,-0.0055797,-0.0063926,0.0010653,-0.0011567,0.0019928,-0.0042098
+Slovenia_IA,0.1267454,0.1459375,0.0376012,0.00095,0.0351196,-0.0010172,0.0019353,0.0022805,0.0081208,0.0218898,-0.0001146,0.0061886,-0.0130384,-0.005675,2.39e-05,-0.0007332,0.0038731,0.0012595,0.0032682,-1.48e-05,-0.0013065,0.003826,-5.09e-05,-0.0006236,-0.0025711
+Slovenia_BA,0.1308967,0.148944,0.0442487,0.0097977,0.040828,-0.0006507,0.0040733,-0.0007693,0.009476,0.018406,-0.0005953,0.0096417,-0.018335,-0.0104133,-0.0004073,0.0021657,0.0076493,-0.0038007,-0.000126,-0.0019593,-0.0052823,0.0068833,0.0030813,-0.003414,-0.0035927
+Paeonian,0.1258692,0.1532603,0.0217473,-0.0202413,0.0275178,-0.0089709,-0.0011946,-0.0021537,0.0042098,0.0311017,0.0028148,0.0077556,-0.0155598,-0.0054131,-0.0129726,-0.00179,0.0069864,0.0031778,0.006819,-0.0081913,-0.0105335,0.0052038,-0.0006471,0.0062256,-0.0023551
+Ancient_Macedonian,0.1249399,0.1499091,0.0119328,-0.0338101,0.0237172,-0.0126338,0.0005111,-0.0013018,0.002957,0.0266825,0.0038312,0.006799,-0.0142566,-0.002092,-0.0130768,-0.0046672,0.0039223,-0.0004328,0.0056042,-0.007864,-0.012321,0.0015148,-0.0008279,0.0053781,-0.0015858
+Vergina_Ancient_Macedonia,0.133173,0.144205,0.016593,-0.046835,0.029852,-0.018686,0.005405,0.005077,-0.001636,0.033167,0.00341,0.007194,-0.021704,-0.006744,-0.012079,-0.000133,0.008736,-0.008108,0.006411,-0.011255,-0.015223,-0.0115,-0.008504,0.011447,-0.001796
+Macedonia_BA,0.130897,0.148267,0.012068,-0.023902,0.025235,-0.009203,0.0047,-0.000923,0.008999,0.031709,0.00065,0.005395,-0.011596,-0.001239,-0.016694,-0.000265,0.004433,0.003674,0.008045,-0.01038,-0.018967,0.009398,0.000123,0.000602,0.000239
+Macedonia_IA,0.1258882,0.1525326,0.0215336,-0.0193154,0.0273589,-0.0084503,-0.000282,-0.0012921,0.0032724,0.0315268,0.0030529,0.0074483,-0.0163378,-0.0078031,-0.013382,0.0004374,0.009844,0.0037374,0.0071018,-0.0071659,-0.0103193,0.0055645,-0.0006532,0.0066031,-0.0023591
+Dacian,0.1220186,0.1389242,0.0187052,-0.0175712,0.0244968,-0.0065818,-0.002303,0.0010156,0.0034768,0.025331,0.0032478,0.0029074,-0.0085034,-0.0026148,-0.0097448,0.0038452,0.0059978,0.0016722,0.0107346,-0.0049522,-0.010731,0.0113514,-0.00281,0.007326,0.0025388
+Dardanian,0.1254328,0.155376,0.0220994,-0.0114988,0.027328,-0.0064702,0.000705,-0.0024462,0.0040904,0.0276998,0.0024034,0.0094716,-0.0154012,-0.0055876,-0.009989,-0.001326,0.0065192,0.0034712,0.0074914,-0.0080288,-0.0078362,0.0016324,0.0011338,0.0035184,-0.0033052
+Illyrian,0.1251886,0.1506766,0.0309702,-0.0062732,0.0326274,-0.0048245,0.0016565,-1.24e-05,0.0068777,0.0273051,0.0005396,0.0082794,-0.0157006,-0.00786,-0.0067401,-0.0029878,0.0070183,0.001663,0.005065,-0.0048822,-0.0049007,0.0019482,-0.0023772,0.00428,-0.002314
+Southern_Illyrian,0.1246362,0.1526678,0.0267128,-0.0124893,0.0290308,-0.0083202,0.0021933,-0.0018845,0.0019773,0.027457,0.0024358,0.0080428,-0.016675,-0.009106,-0.010654,-0.004751,0.0111912,0.0004643,0.0049023,-0.0069615,-0.0073205,0.0015252,-0.0034713,0.0093185,-0.0026345
+Northern_Illyrian,0.125741,0.1486854,0.0352276,-5.7e-05,0.0362239,-0.0013288,0.0011197,0.0018597,0.0117781,0.0271532,-0.0013565,0.008516,-0.0147262,-0.0066139,-0.0028262,-0.0012245,0.0028454,0.0028616,0.0052276,-0.0028029,-0.0024809,0.0023713,-0.0012832,-0.0007585,-0.0019935
+BA_Western_Balkan,0.1263681,0.1479826,0.0297541,-0.0045866,0.0280708,-0.0052865,-0.000388,-8.29e-05,0.0060827,0.0274973,0.0012073,0.0089,-0.0158777,-0.0091465,-0.006724,-0.0021094,0.0085362,0.0012199,0.0050431,-0.0055118,-0.0056325,0.0030484,-0.0021722,0.00471,-0.0049116
+BA_Northern_Balkans,0.12632,0.1438166,0.0566082,0.0248043,0.0480066,0.0062147,0.0030852,0.005557,0.0164814,0.0158591,0.0008427,0.0002133,-0.004402,0.0058258,-0.0083034,0.0016446,0.0083731,0.003168,0.003507,0.0024422,0.0023412,0.0042395,-0.0051651,-0.0164997,-0.0018929
+LBA_Carpathian_Basin,0.1293156,0.1436408,0.0527341,0.0221973,0.0432045,0.0054538,0.0025328,0.0031152,0.0119191,0.0154598,-0.0017771,0.0020152,-0.0028329,-0.0007188,-0.0074346,0.0028064,0.0112493,0.0001621,0.0010891,0.0015491,0.0001873,0.0028923,0.0002124,-0.0098874,-0.0045369
+Greece_Logkas_MBA,0.121791,0.147252,0.022062,-0.013405,0.024312,-0.00516,-0.00188,-0.001385,-0.001125,0.018133,0.00268,0.009067,-0.01338,-0.000619,-0.010858,-0.011602,-0.004238,-0.003674,0.004023,-0.009692,-0.010794,0.001731,0.005854,0.003615,-0.003892`;
+
+const SAMPLE_META = {"Macedonian":{"c":"North Macedonia","s":"Macedonian","p":"Modern","d":"Present-day","y":2000},"Macedonian_Skopje":{"c":"North Macedonia","s":"Macedonian Skopje","p":"Modern","d":"Present-day","y":2000},"Macedonian_Northeast":{"c":"North Macedonia","s":"Macedonian Northeast","p":"Modern","d":"Present-day","y":2000},"Macedonian_East":{"c":"North Macedonia","s":"Macedonian East","p":"Modern","d":"Present-day","y":2000},"Macedonian_Southeast":{"c":"North Macedonia","s":"Macedonian Southeast","p":"Modern","d":"Present-day","y":2000},"Macedonian_Vardar":{"c":"North Macedonia","s":"Macedonian Vardar","p":"Modern","d":"Present-day","y":2000},"Macedonian_Pelagonia":{"c":"North Macedonia","s":"Macedonian Pelagonia","p":"Modern","d":"Present-day","y":2000},"Macedonian_Southwest":{"c":"North Macedonia","s":"Macedonian Southwest","p":"Modern","d":"Present-day","y":2000},"Macedonian_Polog":{"c":"North Macedonia","s":"Macedonian Polog","p":"Modern","d":"Present-day","y":2000},"Macedonian_Torbesh":{"c":"North Macedonia","s":"Macedonian Torbesh","p":"Modern","d":"Present-day","y":2000},"Aromanian":{"c":"Balkans","s":"Aromanian","p":"Modern","d":"Present-day","y":2000},"Albanian":{"c":"Albania","s":"Albanian","p":"Modern","d":"Present-day","y":2000},"Albanian_North_County_Shkoder":{"c":"Albania","s":"Albanian North County Shkoder","p":"Modern","d":"Present-day","y":2000},"Albanian_North_County_Kukes":{"c":"Albania","s":"Albanian North County Kukes","p":"Modern","d":"Present-day","y":2000},"Albanian_North_County_Diber":{"c":"Albania","s":"Albanian North County Diber","p":"Modern","d":"Present-day","y":2000},"Albanian_North_County_Lezhe":{"c":"Albania","s":"Albanian North County Lezhe","p":"Modern","d":"Present-day","y":2000},"Albanian_Central_County_Durres":{"c":"Albania","s":"Albanian Central County Durres","p":"Modern","d":"Present-day","y":2000},"Albanian_Central_County_Tirana":{"c":"Albania","s":"Albanian Central County Tirana","p":"Modern","d":"Present-day","y":2000},"Albanian_Central_County_Elbasan":{"c":"Albania","s":"Albanian Central County Elbasan","p":"Modern","d":"Present-day","y":2000},"Albanian_South_County_Berat":{"c":"Albania","s":"Albanian South County Berat","p":"Modern","d":"Present-day","y":2000},"Albanian_South_County_Fier":{"c":"Albania","s":"Albanian South County Fier","p":"Modern","d":"Present-day","y":2000},"Albanian_South_County_Gjirokaster":{"c":"Albania","s":"Albanian South County Gjirokaster","p":"Modern","d":"Present-day","y":2000},"Albanian_South_County_Vlore":{"c":"Albania","s":"Albanian South County Vlore","p":"Modern","d":"Present-day","y":2000},"Albanian_South_County_Korce":{"c":"Albania","s":"Albanian South County Korce","p":"Modern","d":"Present-day","y":2000},"Albanian_Gheg":{"c":"Albania","s":"Albanian Gheg","p":"Modern","d":"Present-day","y":2000},"Albanian_Tosk":{"c":"Albania","s":"Albanian Tosk","p":"Modern","d":"Present-day","y":2000},"Albanian_North":{"c":"Albania","s":"Albanian North","p":"Modern","d":"Present-day","y":2000},"Albanian_Central":{"c":"Albania","s":"Albanian Central","p":"Modern","d":"Present-day","y":2000},"Albanian_South":{"c":"Albania","s":"Albanian South","p":"Modern","d":"Present-day","y":2000},"Albanian_Kosovo":{"c":"Albania","s":"Albanian Kosovo","p":"Modern","d":"Present-day","y":2000},"Albanian_Macedonia":{"c":"Albania","s":"Albanian Macedonia","p":"Modern","d":"Present-day","y":2000},"Albanian_Montenegro":{"c":"Albania","s":"Albanian Montenegro","p":"Modern","d":"Present-day","y":2000},"Albanian_Serbia":{"c":"Albania","s":"Albanian Serbia","p":"Modern","d":"Present-day","y":2000},"Albanian_Bosnia":{"c":"Albania","s":"Albanian Bosnia","p":"Modern","d":"Present-day","y":2000},"Albanian_Greece":{"c":"Albania","s":"Albanian Greece","p":"Modern","d":"Present-day","y":2000},"Greek":{"c":"Greece","s":"Greek","p":"Modern","d":"Present-day","y":2000},"Greek_Bulgaria":{"c":"Greece","s":"Greek Bulgaria","p":"Modern","d":"Present-day","y":2000},"Greek_Eastern_Macedonia_Thrace":{"c":"Greece","s":"Greek Eastern Macedonia Thrace","p":"Modern","d":"Present-day","y":2000},"Greek_Central_Macedonia":{"c":"Greece","s":"Greek Central Macedonia","p":"Modern","d":"Present-day","y":2000},"Greek_Western_Macedonia":{"c":"Greece","s":"Greek Western Macedonia","p":"Modern","d":"Present-day","y":2000},"Greek_Epirus":{"c":"Greece","s":"Greek Epirus","p":"Modern","d":"Present-day","y":2000},"Greek_Thessaly":{"c":"Greece","s":"Greek Thessaly","p":"Modern","d":"Present-day","y":2000},"Greek_Boeotia":{"c":"Greece","s":"Greek Boeotia","p":"Modern","d":"Present-day","y":2000},"Greek_Phthiotida":{"c":"Greece","s":"Greek Phthiotida","p":"Modern","d":"Present-day","y":2000},"Greek_Corinthia":{"c":"Greece","s":"Greek Corinthia","p":"Modern","d":"Present-day","y":2000},"Greek_Euboea_South":{"c":"Greece","s":"Greek Euboea South","p":"Modern","d":"Present-day","y":2000},"Greek_Florina":{"c":"Greece","s":"Greek Florina","p":"Modern","d":"Present-day","y":2000},"Greek_Grevena":{"c":"Greece","s":"Greek Grevena","p":"Modern","d":"Present-day","y":2000},"Greek_Pella":{"c":"Greece","s":"Greek Pella","p":"Modern","d":"Present-day","y":2000},"Greek_Kastoria":{"c":"Greece","s":"Greek Kastoria","p":"Modern","d":"Present-day","y":2000},"Greek_Central_Macedonia_Rural":{"c":"Greece","s":"Greek Central Macedonia Rural","p":"Modern","d":"Present-day","y":2000},"Greek_Macedonia":{"c":"Greece","s":"Greek Macedonia","p":"Modern","d":"Present-day","y":2000},"Greek_Western_Thrace":{"c":"Greece","s":"Greek Western Thrace","p":"Modern","d":"Present-day","y":2000},"Greek_Northern_Thrace":{"c":"Greece","s":"Greek Northern Thrace","p":"Modern","d":"Present-day","y":2000},"Greek_Eastern_Thrace":{"c":"Greece","s":"Greek Eastern Thrace","p":"Modern","d":"Present-day","y":2000},"Greek_Thrace":{"c":"Greece","s":"Greek Thrace","p":"Modern","d":"Present-day","y":2000},"Italian_Aosta_Valley":{"c":"Italy","s":"Italian Aosta Valley","p":"Modern","d":"Present-day","y":2000},"Italian_Piedmont":{"c":"Italy","s":"Italian Piedmont","p":"Modern","d":"Present-day","y":2000},"Italian_Liguria":{"c":"Italy","s":"Italian Liguria","p":"Modern","d":"Present-day","y":2000},"Italian_Lombardy":{"c":"Italy","s":"Italian Lombardy","p":"Modern","d":"Present-day","y":2000},"Italian_Emilia":{"c":"Italy","s":"Italian Emilia","p":"Modern","d":"Present-day","y":2000},"Italian_Romagna":{"c":"Italy","s":"Italian Romagna","p":"Modern","d":"Present-day","y":2000},"Italian_Trentino":{"c":"Italy","s":"Italian Trentino","p":"Modern","d":"Present-day","y":2000},"Italian_Friuli":{"c":"Italy","s":"Italian Friuli","p":"Modern","d":"Present-day","y":2000},"Italian_Veneto":{"c":"Italy","s":"Italian Veneto","p":"Modern","d":"Present-day","y":2000},"Italian_Tuscany":{"c":"Italy","s":"Italian Tuscany","p":"Modern","d":"Present-day","y":2000},"Italian_Umbria":{"c":"Italy","s":"Italian Umbria","p":"Modern","d":"Present-day","y":2000},"Italian_Marche":{"c":"Italy","s":"Italian Marche","p":"Modern","d":"Present-day","y":2000},"Italian_Lazio":{"c":"Italy","s":"Italian Lazio","p":"Modern","d":"Present-day","y":2000},"Italian_Abruzzo":{"c":"Italy","s":"Italian Abruzzo","p":"Modern","d":"Present-day","y":2000},"Italian_Molise":{"c":"Italy","s":"Italian Molise","p":"Modern","d":"Present-day","y":2000},"Italian":{"c":"Italy","s":"Italian","p":"Modern","d":"Present-day","y":2000},"Swiss_Italian":{"c":"Switzerland","s":"Swiss Italian","p":"Modern","d":"Present-day","y":2000},"Bulgarian":{"c":"Bulgaria","s":"Bulgarian","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Northcentral":{"c":"Bulgaria","s":"Bulgarian Northcentral","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Northeast":{"c":"Bulgaria","s":"Bulgarian Northeast","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Northwest":{"c":"Bulgaria","s":"Bulgarian Northwest","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Southcentral_Rhodopes":{"c":"Bulgaria","s":"Bulgarian Southcentral Rhodopes","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Southeast_Thrace":{"c":"Bulgaria","s":"Bulgarian Southeast Thrace","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Southwest_Pirin":{"c":"Bulgaria","s":"Bulgarian Southwest Pirin","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Sofia":{"c":"Bulgaria","s":"Bulgarian Sofia","p":"Modern","d":"Present-day","y":2000},"Bulgarian_Ukraine":{"c":"Bulgaria","s":"Bulgarian Ukraine","p":"Modern","d":"Present-day","y":2000},"Gagauz":{"c":"Moldova","s":"Gagauz","p":"Modern","d":"Present-day","y":2000},"Pomak":{"c":"Bulgaria/Greece","s":"Pomak","p":"Modern","d":"Present-day","y":2000},"Pomak_Bulgaria":{"c":"Bulgaria/Greece","s":"Pomak Bulgaria","p":"Modern","d":"Present-day","y":2000},"Pomak_Greece":{"c":"Bulgaria/Greece","s":"Pomak Greece","p":"Modern","d":"Present-day","y":2000},"Turkish_Macedonia":{"c":"Turkey/Greece","s":"Turkish Macedonia","p":"Modern","d":"Present-day","y":2000},"Romanian":{"c":"Romania","s":"Romanian","p":"Modern","d":"Present-day","y":2000},"Romanian_Wallachia":{"c":"Romania","s":"Romanian Wallachia","p":"Modern","d":"Present-day","y":2000},"Romanian_Oltenia":{"c":"Romania","s":"Romanian Oltenia","p":"Modern","d":"Present-day","y":2000},"Romanian_Dobruja":{"c":"Romania","s":"Romanian Dobruja","p":"Modern","d":"Present-day","y":2000},"Montenegrin":{"c":"Montenegro","s":"Montenegrin","p":"Modern","d":"Present-day","y":2000},"Serbian":{"c":"Serbia","s":"Serbian","p":"Modern","d":"Present-day","y":2000},"Serbian_Montenegro":{"c":"Serbia","s":"Serbian Montenegro","p":"Modern","d":"Present-day","y":2000},"Serbian_Kosovo":{"c":"Serbia","s":"Serbian Kosovo","p":"Modern","d":"Present-day","y":2000},"Serbian_South_East":{"c":"Serbia","s":"Serbian South East","p":"Modern","d":"Present-day","y":2000},"Bosnian_Sandzak":{"c":"Bosnia","s":"Bosnian Sandzak","p":"Modern","d":"Present-day","y":2000},"Macedonia_Medieval":{"c":"N. Macedonia","s":"Macedonia Medieval","p":"Medieval","d":"600\u20131500 CE","y":1050},"Albania_Ottoman":{"c":"Albania","s":"Albania Ottoman","p":"Ottoman","d":"1400\u20131800 CE","y":1600},"Albania_Medieaval_K\u00ebnet\u00eb_Northeastern_Durr\u00ebs":{"c":"Albania","s":"Albania Medieaval K\u00ebnet\u00eb Northeastern Durr\u00ebs","p":"Modern","d":"Present-day","y":2000},"Albania_Medieval_Shtik\u00eb_Southeastern_Kolonja":{"c":"Albania","s":"Albania Medieval Shtik\u00eb Southeastern Kolonja","p":"Medieval","d":"600\u20131500 CE","y":1050},"Albania_Medieval":{"c":"Albania","s":"Albania Medieval","p":"Medieval","d":"600\u20131500 CE","y":1050},"Montenegro_Medieval":{"c":"Montenegro","s":"Montenegro Medieval","p":"Medieval","d":"600\u20131500 CE","y":1050},"Bulgaria_Medieval":{"c":"Bulgaria","s":"Bulgaria Medieval","p":"Medieval","d":"600\u20131500 CE","y":1050},"Croatia_Medieval":{"c":"Croatia","s":"Croatia Medieval","p":"Medieval","d":"600\u20131500 CE","y":1050},"Serbia_Ottoman":{"c":"Serbia","s":"Serbia Ottoman","p":"Ottoman","d":"1400\u20131800 CE","y":1600},"Serbia_Early_Medieval_Slavic":{"c":"Serbia","s":"Serbia Early Medieval Slavic","p":"Medieval","d":"600\u20131500 CE","y":1050},"Roman_Celtic":{"c":"Roman Empire","s":"Roman Celtic","p":"Roman","d":"100 BCE\u2013400 CE","y":200},"Roman_Dacian":{"c":"Roman Empire","s":"Roman Dacian","p":"Roman","d":"100 BCE\u2013400 CE","y":200},"Roman_Illyrian":{"c":"Roman Empire","s":"Roman Illyrian","p":"Roman","d":"100 BCE\u2013400 CE","y":200},"Roman_Moesia":{"c":"Roman Empire","s":"Roman Moesia","p":"Roman","d":"100 BCE\u2013400 CE","y":200},"Albania_IA":{"c":"Albania","s":"Albania IA","p":"Iron Age","d":"800\u2013300 BCE","y":-550},"Albania_BA":{"c":"Albania","s":"Albania BA","p":"Unknown","d":"","y":0},"Bulgaria_IA":{"c":"Bulgaria","s":"Bulgaria IA","p":"Iron Age","d":"800\u2013300 BCE","y":-550},"Bulgaria_BA":{"c":"Bulgaria","s":"Bulgaria BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Romania_BA":{"c":"Romania","s":"Romania BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Montenegro_BA":{"c":"Montenegro","s":"Montenegro BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Serbia_Mokrin_BA":{"c":"Serbia","s":"Serbia Mokrin BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Croatia_IA":{"c":"Croatia","s":"Croatia IA","p":"Iron Age","d":"800\u2013300 BCE","y":-550},"Croatia_BA":{"c":"Croatia","s":"Croatia BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Slovenia_IA":{"c":"Slovenia","s":"Slovenia IA","p":"Iron Age","d":"800\u2013300 BCE","y":-550},"Slovenia_BA":{"c":"Slovenia","s":"Slovenia BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Paeonian":{"c":"N. Macedonia","s":"Paeonian","p":"Iron Age (Paeonian)","d":"800\u2013300 BCE","y":-550},"Ancient_Macedonian":{"c":"N. Macedonia","s":"Ancient Macedonian","p":"Classical","d":"500\u2013300 BCE","y":-400},"Vergina_Ancient_Macedonia":{"c":"N. Macedonia","s":"Vergina Ancient Macedonia","p":"Classical (Vergina)","d":"350\u2013300 BCE","y":-325},"Macedonia_BA":{"c":"N. Macedonia","s":"Macedonia BA","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"Macedonia_IA":{"c":"N. Macedonia","s":"Macedonia IA","p":"Iron Age","d":"800\u2013300 BCE","y":-550},"Dacian":{"c":"Romania","s":"Dacian","p":"Iron Age (Dacian)","d":"500 BCE\u2013100 CE","y":-200},"Dardanian":{"c":"Kosovo","s":"Dardanian","p":"Iron Age (Dardanian)","d":"500\u2013100 BCE","y":-300},"Illyrian":{"c":"W. Balkans","s":"Illyrian","p":"Iron Age (Illyrian)","d":"800\u2013200 BCE","y":-500},"Southern_Illyrian":{"c":"Albania/Greece","s":"Southern Illyrian","p":"Iron Age (Illyrian)","d":"800\u2013200 BCE","y":-500},"Northern_Illyrian":{"c":"Croatia/Slovenia","s":"Northern Illyrian","p":"Iron Age (Illyrian)","d":"800\u2013200 BCE","y":-500},"BA_Western_Balkan":{"c":"Balkans","s":"BA Western Balkan","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"BA_Northern_Balkans":{"c":"Balkans","s":"BA Northern Balkans","p":"Bronze Age","d":"2500\u20131200 BCE","y":-1850},"LBA_Carpathian_Basin":{"c":"Carpathian Basin","s":"LBA Carpathian Basin","p":"Late Bronze Age","d":"1300\u2013800 BCE","y":-1050},"Greece_Logkas_MBA":{"c":"Greece","s":"Greece Logkas MBA","p":"Middle Bronze Age","d":"2000\u20131600 BCE","y":-1800}};
+
+const SITE_COORDS = {};
+// === PCA PLOT ===
+const PCA_COLORS = {
+  'Macedonian':'#a855f7','Albanian':'#ef4444','Greek':'#3b82f6',
+  'Italian':'#22c55e','Bulgarian':'#eab308','Romanian':'#f97316',
+  'Serbian':'#06b6d4','Montenegrin':'#06b6d4','Bosnian':'#06b6d4',
+  'Aromanian':'#ec4899','Pomak':'#a3a3a3','Gagauz':'#a3a3a3',
+  'Turkish':'#a3a3a3','Swiss':'#22c55e','Ancient':'#f5f5f5'
+};
+function getGroup(name){
+  const n=name.toLowerCase();
+  if(n.startsWith('macedonian'))return'Macedonian';if(n.startsWith('albanian'))return'Albanian';
+  if(n.startsWith('greek'))return'Greek';if(n.startsWith('italian')||n.startsWith('swiss'))return'Italian';
+  if(n.startsWith('bulgarian'))return'Bulgarian';if(n.startsWith('romanian'))return'Romanian';
+  if(n.startsWith('serbian')||n.startsWith('montenegrin')||n.startsWith('bosnian'))return'Serbian';
+  if(n.startsWith('aromanian'))return'Aromanian';if(n.startsWith('pomak'))return'Pomak';
+  if(n.startsWith('gagauz'))return'Gagauz';if(n.startsWith('turkish'))return'Turkish';
+  return'Ancient';
+}
+
+// Sub-PCA computed on the 136 Balkan reference samples
+const PCA_MEAN=[0.1240518610,0.1459092309,0.0238900169,-0.0089197324,0.0273995000,-0.0029501779,0.0015215787,0.0027361507,0.0035888096,0.0142550721,0.0013657735,0.0025298993,-0.0053894904,0.0023130397,-0.0095301669,-0.0014064426,0.0052582169,-0.0001971051,0.0035576162,-0.0038927007,-0.0050605610,0.0008014243,0.0009663088,-0.0004641316,-0.0011254890];
+const PCA_EVS = [
+  [-0.0669990103,0.1817080095,-0.4455250742,-0.6704527206,-0.1189153933,-0.2432404829,-0.0875956238,-0.0977988268,0.0364381711,0.3354592262,0.0405036955,0.1061810069,-0.1988755763,-0.1867601413,0.0013276935,-0.0636232047,0.0003241559,0.0044555407,0.0106992409,-0.0823420838,-0.0381330016,0.0187054944,-0.0380061051,0.0884541398,-0.0265726240],
+  [-0.0739177203,-0.1420907589,-0.4482932770,-0.1612419421,-0.3920146543,0.0542319832,0.0215514191,0.0543032246,-0.2609250003,-0.4876457581,0.0326843575,-0.1915596450,0.3417865292,0.2802323372,-0.0888346554,-0.0202667588,-0.0383462186,-0.0582196432,-0.0736868684,0.0098209640,-0.0910006130,-0.0781035883,0.1079534061,0.0370974674,0.0475280404],
+  [0.0923034009,0.2240165520,-0.0558232832,-0.0295550068,0.0046841109,-0.0583306512,-0.1179298180,0.0754053564,0.1741186500,-0.0945183865,0.1413363813,-0.0707728605,0.2593299410,-0.2228003095,0.4990542993,-0.0111707290,-0.3722996742,-0.0556043259,-0.2992651606,0.2656456953,0.3487715289,-0.1175134702,-0.0071009644,-0.2157016758,0.0112492947],
+  [0.0155525613,-0.1495361543,0.0045967650,0.2344016153,-0.3053540160,0.1149129452,-0.0502074289,-0.0924195786,-0.2668802749,-0.0618423917,-0.0305651273,0.1736729095,-0.2849814118,-0.3158673348,0.3089480555,-0.1086054450,-0.3377655158,-0.0067777047,0.0245037468,-0.1186135742,-0.0779451420,-0.0443077651,0.0869464578,0.5100628065,-0.0773525857]
+];
+const PCA_VAR=[53.2,22.6,6.5,4.4];
+
+function projectPoint(coords){
+  const c=coords.map((v,i)=>v-PCA_MEAN[i]);
+  return PCA_EVS.map(ev=>c.reduce((s,v,i)=>s+v*ev[i],0));
+}
+
+let pcaUserCoords=null,pcaPoints=[],pcaDragging=false,pcaDragStart={x:0,y:0},pcaDragViewStart={cx:0,cy:0},
+    pcaHovered=null,pcaDPR=1,pcaDimX=0,pcaDimY=1,
+    pcaView={cx:0,cy:0,scale:1};
+
+function openPCA(){
+  document.getElementById('pcaOverlay').classList.add('visible');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>initPCA(),50);
+}
+function closePCA(){
+  document.getElementById('pcaOverlay').classList.remove('visible');
+  document.body.style.overflow='';
+}
+
+function initPCA(){
+  const canvas=document.getElementById('pcaCanvas');
+  const wrap=canvas.parentElement;
+  pcaDPR=window.devicePixelRatio||1;
+  canvas.width=wrap.clientWidth*pcaDPR;
+  canvas.height=wrap.clientHeight*pcaDPR;
+  canvas.style.width=wrap.clientWidth+'px';
+  canvas.style.height=wrap.clientHeight+'px';
+
+  pcaPoints=ALL_SAMPLES.map(s=>{
+    const proj=projectPoint(s.coords);
+    return{name:s.name,proj,group:getGroup(s.name)};
+  });
+
+  resetPCAView();
+  buildPCALegend();
+  updatePCButtons();
+
+  const canvas2=canvas;
+  canvas2.onmousedown=e=>{pcaDragging=true;pcaDragStart={x:e.clientX,y:e.clientY};pcaDragViewStart={cx:pcaView.cx,cy:pcaView.cy};canvas2.style.cursor='grabbing';};
+  window.addEventListener('mouseup',()=>{pcaDragging=false;if(document.getElementById('pcaCanvas'))document.getElementById('pcaCanvas').style.cursor='crosshair';});
+  canvas2.onmousemove=e=>{
+    if(pcaDragging){
+      const dx=(e.clientX-pcaDragStart.x)/pcaView.scale;
+      const dy=(e.clientY-pcaDragStart.y)/pcaView.scale;
+      pcaView.cx=pcaDragViewStart.cx-dx;
+      pcaView.cy=pcaDragViewStart.cy+dy;
+      drawPCA();return;
+    }
+    const rect=canvas2.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const tooltip=document.getElementById('pcaTooltip');
+    let found=null,bestD=100;
+    const allPts=[...pcaPoints];
+    if(pcaUserCoords){const p=projectPoint(pcaUserCoords);allPts.push({name:'YOU',proj:p,group:'User'});}
+    for(const p of allPts){
+      const s=dataToScreen(p.proj[pcaDimX],p.proj[pcaDimY]);
+      const d=Math.hypot(mx-s.x,my-s.y);
+      if(d<14&&d<bestD){found=p;bestD=d;}
+    }
+    if(found){
+      tooltip.style.display='block';tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';
+      tooltip.textContent=found.name.replace(/_/g,' ');
+      if(pcaHovered!==found.name){pcaHovered=found.name;drawPCA();}
+    } else {
+      tooltip.style.display='none';
+      if(pcaHovered){pcaHovered=null;drawPCA();}
+    }
+  };
+  canvas2.onmouseleave=()=>{document.getElementById('pcaTooltip').style.display='none';if(pcaHovered){pcaHovered=null;drawPCA();}};
+  canvas2.onwheel=e=>{
+    e.preventDefault();
+    const rect=canvas2.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const wx=pcaView.cx+(mx-rect.width/2)/pcaView.scale;
+    const wy=pcaView.cy-(my-rect.height/2)/pcaView.scale;
+    const factor=e.deltaY<0?1.18:1/1.18;
+    pcaView.scale=Math.max(200,Math.min(800000,pcaView.scale*factor));
+    pcaView.cx=wx-(mx-rect.width/2)/pcaView.scale;
+    pcaView.cy=wy+(my-rect.height/2)/pcaView.scale;
+    drawPCA();
+  };
+  canvas2.style.cursor='crosshair';
+
+  let lastTouchDist=0;
+  canvas2.ontouchstart=e=>{
+    if(e.touches.length===1){pcaDragging=true;pcaDragStart={x:e.touches[0].clientX,y:e.touches[0].clientY};pcaDragViewStart={cx:pcaView.cx,cy:pcaView.cy};}
+    else if(e.touches.length===2){pcaDragging=false;lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
+  };
+  canvas2.ontouchmove=e=>{
+    e.preventDefault();
+    if(e.touches.length===1&&pcaDragging){const dx=(e.touches[0].clientX-pcaDragStart.x)/pcaView.scale;const dy=(e.touches[0].clientY-pcaDragStart.y)/pcaView.scale;pcaView.cx=pcaDragViewStart.cx-dx;pcaView.cy=pcaDragViewStart.cy+dy;drawPCA();}
+    else if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pcaView.scale=Math.max(200,Math.min(800000,pcaView.scale*d/lastTouchDist));lastTouchDist=d;drawPCA();}
+  };
+  canvas2.ontouchend=()=>{pcaDragging=false;};
+}
+
+function resetPCAView(){
+  const xs=pcaPoints.map(p=>p.proj[pcaDimX]);
+  const ys=pcaPoints.map(p=>p.proj[pcaDimY]);
+  if(pcaUserCoords){const p=projectPoint(pcaUserCoords);xs.push(p[pcaDimX]);ys.push(p[pcaDimY]);}
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  pcaView.cx=(minX+maxX)/2;pcaView.cy=(minY+maxY)/2;
+  const canvas=document.getElementById('pcaCanvas');
+  const W=canvas.width/pcaDPR,H=canvas.height/pcaDPR;
+  pcaView.scale=Math.min(W/((maxX-minX)*1.2),H/((maxY-minY)*1.2));
+  drawPCA();
+}
+
+function setPCDim(axis,dim){
+  if(axis==='x')pcaDimX=dim; else pcaDimY=dim;
+  updatePCButtons();resetPCAView();
+}
+
+function updatePCButtons(){
+  document.querySelectorAll('.pc-btn-x').forEach((b,i)=>b.classList.toggle('active',i===pcaDimX));
+  document.querySelectorAll('.pc-btn-y').forEach((b,i)=>b.classList.toggle('active',i===pcaDimY));
+}
+
+function dataToScreen(x,y){
+  const canvas=document.getElementById('pcaCanvas');
+  const W=canvas.width/pcaDPR,H=canvas.height/pcaDPR;
+  return{x:W/2+(x-pcaView.cx)*pcaView.scale, y:H/2-(y-pcaView.cy)*pcaView.scale};
+}
+
+function drawPCA(){
+  const canvas=document.getElementById('pcaCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(pcaDPR,0,0,pcaDPR,0,0);
+  const vW=canvas.width/pcaDPR,vH=canvas.height/pcaDPR;
+  ctx.clearRect(0,0,vW,vH);ctx.fillStyle='#111';ctx.fillRect(0,0,vW,vH);
+
+  // Grid
+  const gridStep=findGridStep(pcaView.scale);
+  const left=pcaView.cx-vW/2/pcaView.scale,right=pcaView.cx+vW/2/pcaView.scale;
+  const bottom=pcaView.cy-vH/2/pcaView.scale,top_=pcaView.cy+vH/2/pcaView.scale;
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=0.5;
+  ctx.font='500 9px JetBrains Mono,monospace';ctx.fillStyle='#2a2a2a';
+  const startX=Math.floor(left/gridStep)*gridStep;
+  for(let gx=startX;gx<=right;gx+=gridStep){
+    const s=dataToScreen(gx,0);
+    ctx.beginPath();ctx.moveTo(s.x,0);ctx.lineTo(s.x,vH);ctx.stroke();
+    ctx.textAlign='center';ctx.fillText(gx.toFixed(3),s.x,vH-5);
+  }
+  const startY=Math.floor(bottom/gridStep)*gridStep;
+  for(let gy=startY;gy<=top_;gy+=gridStep){
+    const s=dataToScreen(0,gy);
+    ctx.beginPath();ctx.moveTo(0,s.y);ctx.lineTo(vW,s.y);ctx.stroke();
+    ctx.textAlign='right';ctx.fillText(gy.toFixed(3),46,s.y-3);
+  }
+
+  // Zero axes
+  const z=dataToScreen(0,0);
+  ctx.strokeStyle='#282828';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(z.x,0);ctx.lineTo(z.x,vH);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,z.y);ctx.lineTo(vW,z.y);ctx.stroke();
+
+  const r=Math.max(3.5,Math.min(7,pcaView.scale/600));
+  const showLabels=pcaView.scale>3500;
+
+  // Ancients
+  pcaPoints.filter(p=>p.group==='Ancient').forEach(p=>{
+    const s=dataToScreen(p.proj[pcaDimX],p.proj[pcaDimY]);
+    if(s.x<-30||s.x>vW+30||s.y<-30||s.y>vH+30)return;
+    const hov=pcaHovered===p.name;const sz=hov?r*1.6:r;
+    ctx.beginPath();ctx.moveTo(s.x,s.y-sz);ctx.lineTo(s.x+sz,s.y);ctx.lineTo(s.x,s.y+sz);ctx.lineTo(s.x-sz,s.y);ctx.closePath();
+    ctx.fillStyle=hov?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.25)';ctx.fill();
+    ctx.strokeStyle=hov?'#fff':'rgba(255,255,255,0.45)';ctx.lineWidth=hov?1.5:0.7;ctx.stroke();
+    if(showLabels||hov){ctx.fillStyle=hov?'#fff':'#555';ctx.font=(hov?'600 11':'400 8')+'px Sora,sans-serif';ctx.textAlign='left';ctx.fillText(p.name.replace(/_/g,' '),s.x+sz+5,s.y+3);}
+  });
+
+  // Moderns
+  pcaPoints.filter(p=>p.group!=='Ancient').forEach(p=>{
+    const s=dataToScreen(p.proj[pcaDimX],p.proj[pcaDimY]);
+    if(s.x<-30||s.x>vW+30||s.y<-30||s.y>vH+30)return;
+    const color=PCA_COLORS[p.group]||'#888';const hov=pcaHovered===p.name;const cr=hov?r*1.5:r;
+    ctx.beginPath();ctx.arc(s.x,s.y,cr,0,Math.PI*2);
+    ctx.fillStyle=color+(hov?'cc':'55');ctx.fill();
+    ctx.strokeStyle=color+(hov?'ff':'aa');ctx.lineWidth=hov?2:1;ctx.stroke();
+    if(showLabels||hov){ctx.fillStyle=hov?'#fff':'#555';ctx.font=(hov?'600 11':'400 8')+'px Sora,sans-serif';ctx.textAlign='left';ctx.fillText(p.name.replace(/_/g,' '),s.x+cr+5,s.y+3);}
+  });
+
+  // User
+  if(pcaUserCoords){
+    const proj=projectPoint(pcaUserCoords);
+    const s=dataToScreen(proj[pcaDimX],proj[pcaDimY]);
+    ctx.beginPath();ctx.arc(s.x,s.y,r*2.5,0,Math.PI*2);ctx.fillStyle='rgba(224,120,64,0.1)';ctx.fill();
+    ctx.beginPath();ctx.arc(s.x,s.y,r*1.4,0,Math.PI*2);ctx.fillStyle='#e07840';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 12px Sora,sans-serif';ctx.textAlign='left';ctx.fillText('YOU',s.x+r*2+5,s.y+4);
+  }
+
+  // Axis labels
+  ctx.fillStyle='#444';ctx.font='600 10px Sora,sans-serif';ctx.textAlign='center';
+  ctx.fillText(`Sub-PC${pcaDimX+1} (${PCA_VAR[pcaDimX]}%)`,vW/2,vH-6);
+  ctx.save();ctx.translate(10,vH/2);ctx.rotate(-Math.PI/2);ctx.fillText(`Sub-PC${pcaDimY+1} (${PCA_VAR[pcaDimY]}%)`,0,0);ctx.restore();
+}
+
+function findGridStep(scale){const t=80/scale;const m=Math.pow(10,Math.floor(Math.log10(t)));const n=t/m;return n<2?m:n<5?2*m:5*m;}
+
+function plotUser(){
+  const input=document.getElementById('pcaInput').value;
+  const coords=parseCoords(input);
+  if(!coords){alert('Could not parse 25 G25 coordinates.');return;}
+  pcaUserCoords=coords;drawPCA();
+}
+
+function buildPCALegend(){
+  const legend=document.getElementById('pcaLegend');
+  const groups=['Macedonian','Albanian','Greek','Italian','Bulgarian','Romanian','Serbian','Aromanian','Ancient'];
+  legend.innerHTML=groups.map(g=>{
+    const color=PCA_COLORS[g];const st=g==='Ancient'?'border-radius:1px;transform:rotate(45deg);':'';
+    return`<span><i style="background:${color};${st}"></i>${g}</span>`;
+  }).join('')+'<span style="color:#444;margin-left:6px">Scroll to zoom · Drag to pan</span>';
+}
+
+</script>
+
+<div class="map-overlay" id="mapOverlay" onclick="if(event.target===this)closeMap()">
+  <div class="map-modal">
+    <div class="map-modal-header">
+      <div>
+        <div class="map-modal-title" id="mapTitle">Archaeological Site</div>
+        <div class="map-modal-sub" id="mapSub"></div>
+      </div>
+      <button class="map-close" onclick="closeMap()">&times;</button>
+    </div>
+    <div id="mapContainer" style="width:100%;height:340px;border-radius:8px;"></div>
+    <div class="map-coords" id="mapCoordText"></div>
+  </div>
+</div>
+</body>
+</html>
