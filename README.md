@@ -4,6 +4,8 @@ A browser-based ancestry calculator built specifically for Balkan populations. P
 
 Works offline. No server. Just one HTML file.
 
+xorpDE.github.io
+
 ## What it does
 
 You paste in your [Global25](https://eurogenes.blogspot.com/) scaled coordinates and the calculator models you as a mixture of four ancestral components:
