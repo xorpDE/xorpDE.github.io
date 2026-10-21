@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xorpde Heatmap · Genetic distance maps from G25 coordinates</title>
+  <meta name="description" content="Paste your Global25 (G25) coordinates and get a free heatmap showing which regions' native populations are genetically closest to you, for the whole world or a region such as Europe. Computed in your browser; nothing is uploaded.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="heatmap/favicon.svg" type="image/svg+xml">
+  <script>
+    // Apply a saved light/dark choice before the first paint (no flash). Without one, the system setting applies.
+    (function (root) {
+      root.classList.add("js");
+      try {
+        var theme = localStorage.getItem("xorpde-heatmap-theme");
+        if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })(document.documentElement);
+  </script>
+  <!-- ?v=… makes browsers fetch the new file after an update; change it whenever these files change -->
+  <link rel="stylesheet" href="heatmap/styles.css?v=20261021">
+  <script src="heatmap/config.js?v=20261021" defer></script>
+  <script src="heatmap/js/app.js?v=20261021" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#create">Skip to the map tool</a>
+
+  <header class="site-header">
+    <div class="wrap home-bar"><a href="./"><span aria-hidden="true">← </span>G25 Balkan Ancestry Calculator</a></div>
+    <div class="wrap header-inner">
+      <a class="site-name" href="#top" data-brand>Xorpde Heatmap</a>
+      <nav class="site-nav" aria-label="Sections">
+        <a href="#create">Create</a>
+        <a href="#method">How it works</a>
+        <a href="#examples">Examples</a>
+        <a href="#questions">Questions</a>
+        <a href="#references">References</a>
+      </nav>
+      <div class="theme-toggle" role="group" aria-label="Colour theme">
+        <button type="button" data-set-theme="light" aria-pressed="false">Light</button>
+        <span aria-hidden="true">/</span>
+        <button type="button" data-set-theme="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" id="top">
+    <header class="title-block">
+      <h1>Genetic distance maps from G25&nbsp;coordinates</h1>
+      <p class="subtitle">A free tool that draws a heatmap of the world or of a single region from your Global25 coordinates, entirely in your browser.</p>
+    </header>
+
+    <section class="abstract" aria-labelledby="abstract-title">
+      <h2 id="abstract-title">Abstract</h2>
+      <p>Paste your scaled G25 coordinates, 25 numbers that summarise your autosomal DNA, and this page draws a map of the world, or of a region such as Europe or South Asia, showing which regions’ native populations are genetically closest to you, together with a table of the closest reference populations. The map is computed locally in your browser: nothing is uploaded, no account is needed, and the tool is free.</p>
+    </section>
+
+    <!-- 1 ============================================================ the tool -->
+    <section class="section" id="create" aria-labelledby="create-title">
+      <h2 id="create-title"><span class="secnum">1</span>Create your map</h2>
+
+      <form class="tool" id="map-form" novalidate>
+        <div class="field">
+          <div class="label-row">
+            <label for="coords">G25 coordinates <span class="opt">(scaled)</span></label>
+            <a href="#q-get">How do I get them?</a>
+          </div>
+          <textarea id="coords" name="coords" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="coords-hint coords-error" placeholder="YourName,0.1254,0.1342,… (25 values)"></textarea>
+          <p class="hint" id="coords-hint">One line: a name followed by 25 numbers, separated by commas. Several lines are averaged into one map.</p>
+          <p class="error" id="coords-error" role="alert" hidden></p>
+        </div>
+
+        <div class="samples" id="samples" hidden>
+          <span class="label" id="samples-label">Try an example</span>
+          <div class="sample-buttons" id="sample-buttons" role="group" aria-labelledby="samples-label"></div>
+        </div>
+
+        <div class="field" id="region-field" hidden>
+          <span class="field-label" id="region-label">Map region</span>
+          <div class="choices" id="region-buttons" role="group" aria-labelledby="region-label" aria-describedby="region-hint"></div>
+          <p class="hint" id="region-hint">With a map on screen, another region redraws it straight away. World maps take longer: about <span class="nowrap">30–90 s</span>.</p>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="map-name">Name on the map <span class="opt">(optional)</span></label>
+            <input id="map-name" name="name" type="text" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Taken from your line">
+          </div>
+          <div class="field">
+            <label for="max-distance">Maximum distance</label>
+            <select id="max-distance" name="maxDistance" aria-describedby="max-hint" autocomplete="off">
+              <option value="0.08" selected>0.08 – sharper contrast (default)</option>
+              <option value="0.1">0.10 – softer contrast</option>
+              <option value="0.15">0.15 – isolated ancestries</option>
+              <option value="0.2">0.20 – distant regions</option>
+              <option value="0.3">0.30 – world map</option>
+            </select>
+          </div>
+        </div>
+        <p class="hint" id="max-hint">Where the colour scale ends (dark blue); larger values suit the world map and distant regions.</p>
+
+        <div class="submit-row">
+          <button class="button" id="create-button" type="submit">Create map</button>
+          <p class="status" id="status" data-state="idle"><span id="status-text" role="status" aria-live="polite">Loading the map engine…</span><span class="status-time" id="status-time" aria-hidden="true"></span></p>
+        </div>
+        <div class="progress" id="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+        <p class="note">The first map downloads the map engine once (about <span class="nowrap">10–30 s</span>). After that, new maps start straight away.</p>
+        <noscript><p class="error">This tool runs in your browser and needs JavaScript. Please enable it and reload the page.</p></noscript>
+      </form>
+
+      <div class="result-area" id="result-area">
+        <p class="placeholder" id="placeholder">Your map will appear here as Figure&nbsp;1, followed by a table of the closest reference populations.</p>
+
+        <div class="notice" id="file-notice" hidden>
+          <p><strong>Open this page through its web address.</strong> Browsers do not run the map engine on a page opened directly from the disk (a <code>file://</code> address).</p>
+          <p>Open it from the website instead (its address ends in <code>/heatmap.html</code>). To try it on your own computer, run a small local web server in this folder, for example <code>python -m http.server</code>, and open <code>http://localhost:8000/heatmap.html</code>.</p>
+        </div>
+
+        <div class="result" id="result" hidden>
+          <figure class="figure">
+            <div class="zoom">
+              <div class="zoom-frame" id="zoom-frame" tabindex="0" role="group" aria-label="Figure 1, zoomable" aria-describedby="zoom-help">
+                <img id="result-img" alt="" draggable="false">
+              </div>
+              <div class="zoom-controls" role="group" aria-label="Zoom">
+                <button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+                <button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+                <button type="button" class="zoom-reset" id="zoom-reset" aria-label="Reset zoom" title="Show the whole map">Reset</button>
+              </div>
+            </div>
+            <figcaption><span class="fig-label">Figure 1.</span> <span id="result-caption"></span></figcaption>
+          </figure>
+          <p class="result-actions"><a id="download" href="#" download>Download PNG</a><button type="button" class="link-button" id="save-view" aria-describedby="zoom-help">Save this view</button><span id="result-size"></span><span id="result-time"></span></p>
+          <p class="hint" id="zoom-help">Zoom with + and −, the mouse wheel, a double-click or a pinch; drag or use the arrow keys to move. “Save this view” draws the visible part again as a full-size map.</p>
+
+          <table class="booktabs" id="nearest-table">
+            <caption><span class="fig-label">Table 1.</span> Closest reference populations (G25 distance; lower is more similar).</caption>
+            <thead>
+              <tr><th scope="col" class="num">Rank</th><th scope="col">Population</th><th scope="col" class="num">Distance</th></tr>
+            </thead>
+            <tbody id="nearest-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 ============================================================ method -->
+    <section class="section" id="method" aria-labelledby="method-title">
+      <h2 id="method-title"><span class="secnum">2</span>How it works</h2>
+      <p>Everything happens on your own device, in four steps:</p>
+      <ol class="plain-steps">
+        <li><strong>Compare.</strong> Your 25 coordinates are compared with those of about 2,000 reference populations. Each population gets a genetic distance: the lower the number, the more similar.</li>
+        <li><strong>Place.</strong> Every population sits at its homeland, where it traditionally lives. Diaspora and outlier groups are left out, so the map shows regions of origin rather than where people live today.</li>
+        <li><strong>Fill in.</strong> The space between the populations is filled in smoothly, so every place on the map gets a value.</li>
+        <li><strong>Colour.</strong> Only land is coloured: red where people are closest to you, dark blue at or beyond the maximum distance you chose. Thin lines mark steps of 0.01.</li>
+      </ol>
+      <p>The maps use the same projection as most online maps (Web Mercator). “Save this view” draws the part you zoomed into as a map of its own.</p>
+    </section>
+
+    <!-- 3 ============================================================ examples -->
+    <section class="section" id="examples" aria-labelledby="examples-title">
+      <h2 id="examples-title"><span class="secnum">3</span>Examples</h2>
+      <p>Maps made with the same engine from published population averages <a class="cite" href="#ref-2">[2]</a>, with a maximum distance of 0.10 unless noted. Select a map to open it at full resolution.</p>
+      <div class="gallery" id="gallery"></div>
+    </section>
+
+    <!-- 4 ============================================================ questions -->
+    <section class="section" id="questions" aria-labelledby="questions-title">
+      <h2 id="questions-title"><span class="secnum">4</span>Questions</h2>
+      <div class="faq">
+        <details id="q-what">
+          <summary>What are G25 coordinates?</summary>
+          <p>Global25 (G25) is a genetic coordinate system from the Eurogenes project by Davidski. It summarises a person’s autosomal DNA as 25 numbers: a point in a 25-dimensional space. The closer two points are, the more similar the people or populations behind them.</p>
+        </details>
+        <details id="q-get">
+          <summary>How do I get my coordinates?</summary>
+          <p>You need the raw data file from a DNA test (for example AncestryDNA, 23andMe, MyHeritage or FamilyTreeDNA) and an independent service that converts it into G25 coordinates, such as Davidski’s <a href="https://g25requests.app/" target="_blank" rel="noopener">g25requests.app</a>. This site is not affiliated with any of them and never needs your raw data, only the line with the 25 numbers.</p>
+        </details>
+        <details id="q-scaled">
+          <summary>Scaled or unscaled coordinates?</summary>
+          <p>Use the <strong>scaled</strong> coordinates. G25 services usually provide both; the reference populations, the distances and the colour scale here are all based on scaled values, so unscaled numbers give a misleading map.</p>
+        </details>
+        <details id="q-upload">
+          <summary>Is anything uploaded?</summary>
+          <p>No. Your browser downloads the map engine (Python with Pyodide, from the jsDelivr CDN) and the reference data from this site. Your coordinates are then processed only on your device and are never sent anywhere. There are no accounts, cookies or analytics; the only thing stored is your light or dark choice, in your own browser.</p>
+        </details>
+        <details id="q-speed">
+          <summary>Why is the first map slower?</summary>
+          <p>The first time, your browser downloads and starts the map engine: Python with NumPy, SciPy and matplotlib, compiled to WebAssembly. This takes about 10–30 seconds, and the browser keeps a copy for later visits. Each map then takes some seconds of computing on your own device; phones are slower than laptops. A world map takes longer, about 30–90 seconds.</p>
+        </details>
+        <details id="q-colours">
+          <summary>What do the colours and the numbers mean?</summary>
+          <p>Every point on land is coloured by the estimated G25 distance between your coordinates and the people native to that place. Red is closest; the colours run through orange, yellow and green to blue, and dark blue means at or beyond the maximum distance (0.08 by default). Contour lines mark every 0.01. As a rough guide, a distance below about 0.02 is a very close match, around 0.05 is typical between populations from different parts of Europe, and 0.10 or more is far apart. Table&nbsp;1 lists the twelve closest reference populations.</p>
+        </details>
+        <details id="q-use">
+          <summary>Can I use the image?</summary>
+          <p>Yes. The map is yours to download, share or print. The basemap is in the public domain (Natural Earth), and the data sources are listed in section&nbsp;5.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- 5 ============================================================ references -->
+    <section class="section" id="references" aria-labelledby="references-title">
+      <h2 id="references-title"><span class="secnum">5</span>Data and references</h2>
+      <ol class="references">
+        <li id="ref-1">Natural Earth. Admin 0 – Countries, 1:10m (<i>ne_10m_admin_0_countries</i>). Public domain. <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">naturalearthdata.com</a></li>
+        <li id="ref-2">G25 coordinates: Moriopoulos Collection (modern population averages). Eurogenes Global25 coordinate system by Davidski.</li>
+        <li id="ref-3">Pyodide: Python for the browser, compiled to WebAssembly. <a href="https://pyodide.org/" target="_blank" rel="noopener">pyodide.org</a></li>
+        <li id="ref-4">J. D. Hunter, “Matplotlib: a 2D graphics environment,” <i>Computing in Science &amp; Engineering</i> 9(3), 90–95, 2007. C. R. Harris et al., “Array programming with NumPy,” <i>Nature</i> 585, 357–362, 2020. P. Virtanen et al., “SciPy 1.0: fundamental algorithms for scientific computing in Python,” <i>Nature Methods</i> 17, 261–272, 2020.</li>
+        <li id="ref-5">G. Matheron, “Principles of geostatistics,” <i>Economic Geology</i> 58(8), 1246–1266, 1963. Ordinary kriging is computed with a PyKrige-compatible implementation.</li>
+      </ol>
+      <p class="disclaimer">Made for curiosity and learning. The map shows genetic similarity to modern reference populations; it says nothing about identity, nationality or health.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Free tool · computed in your browser<span id="legal-links" hidden></span></p>
+    </div>
+  </footer>
+</body>
+</html>
