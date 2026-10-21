@@ -1957,5 +1957,29 @@ function buildPCALegend(){
     <div class="map-coords" id="mapCoordText"></div>
   </div>
 </div>
+<script>
+(function(){
+  var pca = document.querySelector('.pca-open-btn');
+  if (!pca) return;
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  pca.parentNode.insertBefore(wrap, pca);
+  wrap.appendChild(pca);
+  var a = document.createElement('a');
+  a.className = 'pca-open-btn';
+  a.href = 'heatmap.html';
+  a.style.cssText = 'margin-bottom:0;text-decoration:none;';
+  a.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+      '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>' +
+      '<rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>' +
+    '</svg>' +
+    'Heatmap' +
+    '<span style="font-size:0.58rem;font-weight:700;letter-spacing:0.06em;background:var(--accent);color:#fff;padding:1px 6px;border-radius:4px">NEW</span>';
+  wrap.appendChild(a);
+})();
+</script>
+
+  
 </body>
 </html>
