@@ -6,9 +6,8 @@
   <title>Xorpde Heatmap · Genetic distance maps from G25 coordinates</title>
   <meta name="description" content="Paste your Global25 (G25) coordinates and get a free heatmap showing which regions' native populations are genetically closest to you, for the whole world or a region such as Europe. Computed in your browser; nothing is uploaded.">
   <meta name="color-scheme" content="light dark">
-  <link rel="icon" href="heatmap/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23186aa8'/%3E%3Ccircle cx='15.2' cy='15.4' r='11.6' fill='%2374cf7a'/%3E%3Ccircle cx='14.5' cy='14.9' r='8.3' fill='%23f8c659'/%3E%3Ccircle cx='13.9' cy='14.5' r='5.2' fill='%23ee8751'/%3E%3Ccircle cx='13.5' cy='14.2' r='2.5' fill='%23bb0d31'/%3E%3C/svg%3E" type="image/svg+xml">
   <script>
-    // Apply a saved light/dark choice before the first paint (no flash). Without one, the system setting applies.
     (function (root) {
       root.classList.add("js");
       try {
@@ -17,10 +16,9 @@
       } catch (e) {}
     })(document.documentElement);
   </script>
-  <!-- ?v=… makes browsers fetch the new file after an update; change it whenever these files change -->
-  <link rel="stylesheet" href="heatmap/styles.css?v=20261021">
-  <script src="heatmap/config.js?v=20261021" defer></script>
-  <script src="heatmap/js/app.js?v=20261021" defer></script>
+  <link rel="stylesheet" href="heatmap-styles.css?v=20261021">
+  <script src="heatmap-config.js?v=20261021" defer></script>
+  <script src="heatmap-app.js?v=20261021" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#create">Skip to the map tool</a>
@@ -55,7 +53,6 @@
       <p>Paste your scaled G25 coordinates, 25 numbers that summarise your autosomal DNA, and this page draws a map of the world, or of a region such as Europe or South Asia, showing which regions’ native populations are genetically closest to you, together with a table of the closest reference populations. The map is computed locally in your browser: nothing is uploaded, no account is needed, and the tool is free.</p>
     </section>
 
-    <!-- 1 ============================================================ the tool -->
     <section class="section" id="create" aria-labelledby="create-title">
       <h2 id="create-title"><span class="secnum">1</span>Create your map</h2>
 
@@ -144,7 +141,6 @@
       </div>
     </section>
 
-    <!-- 2 ============================================================ method -->
     <section class="section" id="method" aria-labelledby="method-title">
       <h2 id="method-title"><span class="secnum">2</span>How it works</h2>
       <p>Everything happens on your own device, in four steps:</p>
@@ -157,14 +153,12 @@
       <p>The maps use the same projection as most online maps (Web Mercator). “Save this view” draws the part you zoomed into as a map of its own.</p>
     </section>
 
-    <!-- 3 ============================================================ examples -->
     <section class="section" id="examples" aria-labelledby="examples-title">
       <h2 id="examples-title"><span class="secnum">3</span>Examples</h2>
       <p>Maps made with the same engine from published population averages <a class="cite" href="#ref-2">[2]</a>, with a maximum distance of 0.10 unless noted. Select a map to open it at full resolution.</p>
       <div class="gallery" id="gallery"></div>
     </section>
 
-    <!-- 4 ============================================================ questions -->
     <section class="section" id="questions" aria-labelledby="questions-title">
       <h2 id="questions-title"><span class="secnum">4</span>Questions</h2>
       <div class="faq">
@@ -199,7 +193,6 @@
       </div>
     </section>
 
-    <!-- 5 ============================================================ references -->
     <section class="section" id="references" aria-labelledby="references-title">
       <h2 id="references-title"><span class="secnum">5</span>Data and references</h2>
       <ol class="references">
