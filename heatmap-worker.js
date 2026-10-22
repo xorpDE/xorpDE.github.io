@@ -3,6 +3,7 @@ import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyod
 const PYODIDE_BASE = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
 const BUNDLE_URL = new URL("heatmap-engine.zip", self.location.href).href;
 const ENGINE_DIR = "/home/pyodide/engine";
+const PACKAGE_DIR = `${ENGINE_DIR}/g25heatmap`;
 
 const started = performance.now();
 let engine = null;
@@ -30,8 +31,16 @@ async function init() {
   status("engine", "Loading the reference populations and map data…", 0.24);
   const response = await fetch(BUNDLE_URL, { cache: "no-cache" });
   if (!response.ok) throw new Error(`could not download ${BUNDLE_URL} (HTTP ${response.status})`);
-  pyodide.unpackArchive(await response.arrayBuffer(), "zip", { extractDir: ENGINE_DIR });
-  pyodide.runPython(`import sys\nif "${ENGINE_DIR}" not in sys.path: sys.path.insert(0, "${ENGINE_DIR}")`);
+  pyodide.unpackArchive(await response.arrayBuffer(), "zip", { extractDir: PACKAGE_DIR });
+  pyodide.runPython([
+    "import os, sys",
+    `pkg = "${PACKAGE_DIR}"`,
+    'os.makedirs(pkg + "/data", exist_ok=True)',
+    "for name in os.listdir(pkg):",
+    '    if name.endswith((".geojson", ".csv")):',
+    '        os.replace(pkg + "/" + name, pkg + "/data/" + name)',
+    `if "${ENGINE_DIR}" not in sys.path: sys.path.insert(0, "${ENGINE_DIR}")`,
+  ].join("\n"));
   engine = pyodide.pyimport("g25heatmap.webapp");
   engine.warmup();
   status("ready", "Map engine ready.", null);
@@ -55,7 +64,7 @@ function render(msg) {
   let out;
   try {
     out = engine.render(String(msg.coords || ""), msg.name ? String(msg.name) : undefined,
-      Number(msg.maxDistance) || 0.1, String(msg.brand || ""), String(msg.region || "europe"), progress,
+      Number(msg.maxDistance) || 0.08, String(msg.brand || ""), String(msg.region || "europe"), progress,
       Array.isArray(msg.view) && msg.view.length === 4 ? msg.view.map(Number) : undefined);
   } catch (err) {
     self.postMessage({ type: "error", id: msg.id, kind: "internal", message: String(err && err.message || err) });

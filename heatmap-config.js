@@ -1,6 +1,8 @@
 window.SITE_CONFIG = {
   brand: "Xorpde Heatmap",
 
+  mapBrand: "xorpde.github.io",
+
   imprintUrl: "",
   privacyUrl: "",
 

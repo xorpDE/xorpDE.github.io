@@ -16,9 +16,9 @@
       } catch (e) {}
     })(document.documentElement);
   </script>
-  <link rel="stylesheet" href="heatmap-styles.css?v=20261021">
-  <script src="heatmap-config.js?v=20261021" defer></script>
-  <script src="heatmap-app.js?v=20261021" defer></script>
+  <link rel="stylesheet" href="heatmap-styles.css?v=20261022">
+  <script src="heatmap-config.js?v=20261022" defer></script>
+  <script src="heatmap-app.js?v=20261022" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#create">Skip to the map tool</a>
@@ -86,8 +86,8 @@
           <div class="field">
             <label for="max-distance">Maximum distance</label>
             <select id="max-distance" name="maxDistance" aria-describedby="max-hint" autocomplete="off">
-              <option value="0.08" selected>0.08 – sharper contrast (default)</option>
-              <option value="0.1">0.10 – softer contrast</option>
+              <option value="0.05">0.05 – extreme contrast</option>
+              <option value="0.08" selected>0.08 – default</option>
               <option value="0.15">0.15 – isolated ancestries</option>
               <option value="0.2">0.20 – distant regions</option>
               <option value="0.3">0.30 – world map</option>
@@ -127,7 +127,11 @@
             </div>
             <figcaption><span class="fig-label">Figure 1.</span> <span id="result-caption"></span></figcaption>
           </figure>
-          <p class="result-actions"><a id="download" href="#" download>Download PNG</a><button type="button" class="link-button" id="save-view" aria-describedby="zoom-help">Save this view</button><span id="result-size"></span><span id="result-time"></span></p>
+          <div class="result-actions">
+            <a class="button action-button" id="download" href="#" download><svg class="action-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Download PNG</a>
+            <button type="button" class="button-outline action-button" id="save-view" aria-describedby="zoom-help"><svg class="action-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Save this view</button>
+            <p class="result-meta"><span id="result-size"></span><span id="result-time"></span></p>
+          </div>
           <p class="hint" id="zoom-help">Zoom with + and −, the mouse wheel, a double-click or a pinch; drag or use the arrow keys to move. “Save this view” draws the visible part again as a full-size map.</p>
 
           <table class="booktabs" id="nearest-table">
@@ -202,6 +206,7 @@
         <li id="ref-4">J. D. Hunter, “Matplotlib: a 2D graphics environment,” <i>Computing in Science &amp; Engineering</i> 9(3), 90–95, 2007. C. R. Harris et al., “Array programming with NumPy,” <i>Nature</i> 585, 357–362, 2020. P. Virtanen et al., “SciPy 1.0: fundamental algorithms for scientific computing in Python,” <i>Nature Methods</i> 17, 261–272, 2020.</li>
         <li id="ref-5">G. Matheron, “Principles of geostatistics,” <i>Economic Geology</i> 58(8), 1246–1266, 1963. Ordinary kriging is computed with a PyKrige-compatible implementation.</li>
       </ol>
+      <p class="disclaimer"><strong>Inspiration.</strong> This tool is inspired by Kriqlation’s genetic-distance heatmaps. It is an independent project with its own code and its own sources: a more detailed edition of the Moriopoulos Collection averages <a class="cite" href="#ref-2">[2]</a>, with our own placement of every population, while Kriqlation works with a different dataset, so maps from the two can differ. If you are interested in Kriqlation’s work, visit <a href="https://kriqlation.netlify.app/" target="_blank" rel="noopener">kriqlation.netlify.app</a>.</p>
       <p class="disclaimer">Made for curiosity and learning. The map shows genetic similarity to modern reference populations; it says nothing about identity, nationality or health.</p>
     </section>
   </main>

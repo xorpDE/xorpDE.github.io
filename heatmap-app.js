@@ -3,6 +3,7 @@
 
   const cfg = window.SITE_CONFIG || {};
   const BRAND = String(cfg.brand || "").trim() || "Xorpde Heatmap";
+  const MAP_BRAND = String(cfg.mapBrand || "").trim() || BRAND;
   const THEME_KEY = "xorpde-heatmap-theme";
   const N_DIMS = 25;
   const root = document.documentElement;
@@ -156,7 +157,7 @@
     if (worker || !canRun || fromFile) return;
     engine = "loading";
     try {
-      worker = new Worker("heatmap-worker.js?v=20261021", { type: "module" }); 
+      worker = new Worker("heatmap-worker.js?v=20261022", { type: "module" }); 
     } catch (err) {
       engineFailed(err && err.message);
       return;
@@ -267,7 +268,7 @@
     const name = ui.name.value.trim();
     const label = name || (samples.length === 1 ? samples[0].name : `the average of ${samples.length} samples`);
     startJob("map", label, { coords: ui.coords.value, name: name || null,
-      maxDistance: Number(ui.maxDistance.value) || 0.08, brand: BRAND, region });
+      maxDistance: Number(ui.maxDistance.value) || 0.08, brand: MAP_BRAND, region });
   }
 
   function startJob(kind, label, request) {
