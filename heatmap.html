@@ -16,9 +16,9 @@
       } catch (e) {}
     })(document.documentElement);
   </script>
-  <link rel="stylesheet" href="heatmap-styles.css?v=20261023b">
-  <script src="heatmap-config.js?v=20261023b" defer></script>
-  <script src="heatmap-app.js?v=20261023b" defer></script>
+  <link rel="stylesheet" href="heatmap-styles.css?v=20261023e">
+  <script src="heatmap-config.js?v=20261023d" defer></script>
+  <script src="heatmap-app.js?v=20261023e" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#create">Skip to the map tool</a>
@@ -73,6 +73,12 @@
           <p class="hint" id="region-hint">Another region redraws the map straight away. World maps take <span class="nowrap">30–90 s</span>.</p>
         </div>
 
+        <div class="field" id="sampleset-field" hidden>
+          <span class="field-label" id="sampleset-label">Dataset</span>
+          <div class="choices" id="sampleset-buttons" role="group" aria-labelledby="sampleset-label" aria-describedby="sampleset-hint"></div>
+          <p class="hint" id="sampleset-hint">Two separate datasets; each map uses one. Another dataset redraws the map straight away.</p>
+        </div>
+
         <div class="field-grid">
           <div class="field">
             <label for="map-name">Name on the map <span class="opt">(optional)</span></label>
@@ -81,7 +87,8 @@
           <div class="field">
             <label for="max-distance">Maximum distance</label>
             <select id="max-distance" name="maxDistance" aria-describedby="max-hint" autocomplete="off">
-              <option value="0.05">0.05 – extreme contrast</option>
+              <option value="0.04">0.04 – maximum contrast</option>
+              <option value="0.05">0.05 – high contrast</option>
               <option value="0.1" selected>0.10 – default</option>
               <option value="0.15">0.15 – isolated ancestries</option>
               <option value="0.2">0.20 – distant regions</option>
@@ -140,7 +147,7 @@
             <p class="result-meta"><span id="result-size"></span><span id="result-time"></span></p>
           </div>
           <p class="hint" id="zoom-help">Zoom with + and −, the mouse wheel or a pinch, and drag to move. “Save this view” downloads the visible part as a full map.</p>
-          <p class="hint" id="sources-note">“Show samples” marks the samples the map is computed from and today’s borders (dashed: disputed). Select a dot for its name and G25 coordinates.</p>
+          <p class="hint" id="sources-note">“Show samples” marks the samples the map is computed from. Select a dot for its name and G25 coordinates.</p>
 
           <table class="booktabs" id="nearest-table">
             <caption><span class="fig-label">Table 1.</span> Closest samples (lower distance = more similar).</caption>
@@ -156,7 +163,7 @@
     <section class="section" id="method" aria-labelledby="method-title">
       <h2 id="method-title"><span class="secnum">2</span>How it works</h2>
       <ol class="plain-steps">
-        <li><strong>Compare.</strong> Your coordinates are compared with about 1,700 samples; a lower distance means more similar.</li>
+        <li><strong>Compare.</strong> Your coordinates are compared with every sample of the chosen dataset; a lower distance means more similar.</li>
         <li><strong>Place.</strong> Each sample sits at its homeland. Diaspora and outlier groups are left out. “Show samples” under the map marks them.</li>
         <li><strong>Fill in.</strong> The space between the populations is filled in smoothly (kriging).</li>
         <li><strong>Colour.</strong> Land is coloured from red (closest) to dark blue (the maximum distance or more). Lines mark steps of 0.01.</li>
@@ -194,8 +201,8 @@
     <section class="section" id="references" aria-labelledby="references-title">
       <h2 id="references-title"><span class="secnum">5</span>Data and references</h2>
       <ol class="references">
-        <li id="ref-1">Natural Earth. Admin 0 – Countries, 1:10m (<i>ne_10m_admin_0_countries</i>). Public domain. <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">naturalearthdata.com</a></li>
-        <li id="ref-2">G25 coordinates: Moriopoulos Collection (modern population averages). Eurogenes Global25 coordinate system by Davidski.</li>
+        <li id="ref-1">Natural Earth. Land, 1:10m and 1:50m (<i>ne_10m_land</i>, <i>ne_50m_land</i>). Public domain. <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">naturalearthdata.com</a></li>
+        <li id="ref-2">G25 coordinates: Advanced Moriopoulos (Moriopoulos Collection, modern population averages) and Makedonas G25. Eurogenes Global25 coordinate system by Davidski.</li>
         <li id="ref-3">Pyodide: Python for the browser, compiled to WebAssembly. <a href="https://pyodide.org/" target="_blank" rel="noopener">pyodide.org</a></li>
         <li id="ref-4">J. D. Hunter, “Matplotlib: a 2D graphics environment,” <i>Computing in Science &amp; Engineering</i> 9(3), 90–95, 2007. C. R. Harris et al., “Array programming with NumPy,” <i>Nature</i> 585, 357–362, 2020. P. Virtanen et al., “SciPy 1.0: fundamental algorithms for scientific computing in Python,” <i>Nature Methods</i> 17, 261–272, 2020.</li>
         <li id="ref-5">G. Matheron, “Principles of geostatistics,” <i>Economic Geology</i> 58(8), 1246–1266, 1963. Ordinary kriging is computed with a PyKrige-compatible implementation.</li>

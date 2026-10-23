@@ -112,6 +112,7 @@
     name: $("map-name"), maxDistance: $("max-distance"), create: $("create-button"),
     samples: $("samples"), sampleButtons: $("sample-buttons"),
     regionField: $("region-field"), regionButtons: $("region-buttons"),
+    sampleSetField: $("sampleset-field"), sampleSetButtons: $("sampleset-buttons"),
     status: $("status"), statusText: $("status-text"), statusTime: $("status-time"),
     progress: $("progress"), progressBar: $("progress-bar"),
     area: $("result-area"), placeholder: $("placeholder"), fileNotice: $("file-notice"), result: $("result"),
@@ -139,6 +140,12 @@
   let region = String(cfg.defaultRegion || "europe");
   if (REGIONS.length && !REGIONS.some((r) => r.key === region)) region = REGIONS[0].key;
 
+  const SAMPLE_SETS = (Array.isArray(cfg.sampleSets) ? cfg.sampleSets : []).filter((s) => s && s.key)
+    .map((s) => ({ key: String(s.key), label: String(s.label || s.key) }));
+  let sampleSet = String(cfg.defaultSamples || (SAMPLE_SETS[0] ? SAMPLE_SETS[0].key : ""));
+  if (SAMPLE_SETS.length && !SAMPLE_SETS.some((s) => s.key === sampleSet)) sampleSet = SAMPLE_SETS[0].key;
+  const sampleSetLabel = (key) => (SAMPLE_SETS.find((s) => s.key === key) || { label: key }).label;
+
 
   let worker = null;
   let engine = "idle"; 
@@ -159,7 +166,7 @@
     if (worker || !canRun || fromFile) return;
     engine = "loading";
     try {
-      worker = new Worker("heatmap-worker.js?v=20261023b", { type: "module" }); 
+      worker = new Worker("heatmap-worker.js?v=20261023d", { type: "module" }); 
     } catch (err) {
       engineFailed(err && err.message);
       return;
@@ -242,7 +249,8 @@
   }
 
   function setBusy(busy, newMap) {
-    [ui.create, ...ui.regionButtons.querySelectorAll("button")].forEach((b) => setDisabled(b, busy));
+    [ui.create, ...ui.regionButtons.querySelectorAll("button"), ...ui.sampleSetButtons.querySelectorAll("button")]
+      .forEach((b) => setDisabled(b, busy));
     ui.create.textContent = busy && newMap ? "Creating map…" : "Create map";
     ui.area.setAttribute("aria-busy", String(Boolean(busy && newMap)));
     ui.result.classList.toggle("is-stale", Boolean(busy && newMap));
@@ -273,7 +281,7 @@
     const name = ui.name.value.trim();
     const label = name || (samples.length === 1 ? samples[0].name : `the average of ${samples.length} samples`);
     startJob("map", label, { coords: ui.coords.value, name: name || null,
-      maxDistance: Number(ui.maxDistance.value) || 0.1, brand: MAP_BRAND, region });
+      maxDistance: Number(ui.maxDistance.value) || 0.1, brand: MAP_BRAND, region, samples: sampleSet || null });
   }
 
   function startJob(kind, label, request) {
@@ -316,10 +324,14 @@
     ui.download.href = blobUrl;
     ui.download.download = m.filename || "g25-heatmap.png";
 
-    const scale = Number.isFinite(m.vmin) && Number.isFinite(m.vmax)
-      ? `Colour scale ${m.vmin.toFixed(3)}–${m.vmax.toFixed(3)}; red = closest.`
-      : "Red = closest.";
-    ui.caption.textContent = `Genetic distance map for ${label} (${where}). ${scale}`;
+    const tooFar = Number.isFinite(m.closest) && Number.isFinite(m.vmax) && m.closest >= m.vmax;
+    const scale = tooFar
+      ? `No place on this map is within the maximum distance of ${m.vmax.toFixed(2)} (closest: ${m.closest.toFixed(3)}); choose a larger maximum distance.`
+      : Number.isFinite(m.vmin) && Number.isFinite(m.vmax)
+        ? `Colour scale ${m.vmin.toFixed(3)}–${m.vmax.toFixed(3)}; red = closest.`
+        : "Red = closest.";
+    const set = drawn.samples ? `; dataset: ${sampleSetLabel(drawn.samples)}` : "";
+    ui.caption.textContent = `Genetic distance map for ${label} (${where}${set}). ${scale}`;
     ui.size.textContent = m.width && m.height ? `${m.width} × ${m.height} px` : "";
     ui.time.textContent = `computed in ${fmtSeconds(typeof m.seconds === "number" ? m.seconds : total)}`;
 
@@ -474,8 +486,6 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   const DOT_RADIUS = 2.6; 
   let sourcesOn = false;
-  let borders = null; 
-  let bordersLoading = false;
   let cardIndex = -1; 
 
   const card = {
@@ -484,6 +494,7 @@
   };
   const prettyLabel = (label) => String(label).replace(/_\(n=\d+\)$/, "").replace(/_/g, " ");
   const fmtCoord = (v, pos, neg) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? pos : neg}`;
+  const peopleText = (n) => `${n} ${n === 1 ? "person" : "people"}`;
   const svgEl = (tag, attrs) => {
     const node = document.createElementNS(SVG_NS, tag);
     Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, String(v)));
@@ -503,57 +514,6 @@
     return (x, y) => [g.tx + zoom.s * x * kx, g.ty + zoom.s * y * ky];
   }
 
-  const R_EARTH = 6378137;
-  const toMerc = (lon, lat) => {
-    const phi = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
-    return [(R_EARTH * lon * Math.PI) / 180, R_EARTH * Math.log(Math.tan(Math.PI / 4 + phi / 2))];
-  };
-
-  function loadBorders() {
-    if (borders || bordersLoading) return;
-    bordersLoading = true;
-    const script = make("script");
-    script.src = "heatmap-borders.js?v=20261023";
-    script.onload = () => {
-      const data = window.HEATMAP_BORDERS || {};
-      const decode = (flat) => {
-        const pts = [];
-        let lon = 0;
-        let lat = 0;
-        const box = [Infinity, Infinity, -Infinity, -Infinity];
-        for (let k = 0; k + 1 < flat.length; k += 2) {
-          lon = k ? lon + flat[k] : flat[0];
-          lat = k ? lat + flat[k + 1] : flat[1];
-          const [x, y] = toMerc(lon / 100, lat / 100);
-          pts.push(x, y);
-          box[0] = Math.min(box[0], x); box[1] = Math.min(box[1], y);
-          box[2] = Math.max(box[2], x); box[3] = Math.max(box[3], y);
-        }
-        return { pts, box };
-      };
-      borders = { solid: (data.solid || []).map(decode), dashed: (data.dashed || []).map(decode) };
-      bordersLoading = false;
-      drawSources();
-    };
-    script.onerror = () => { bordersLoading = false; }; 
-    document.head.append(script);
-  }
-
-  function borderPath(lines) {
-    const [left, top, right, bottom] = shown.mapBox;
-    const [xmin, xmax, ymin, ymax] = shown.extent;
-    const sx = (right - left) / (xmax - xmin);
-    const sy = (bottom - top) / (ymax - ymin);
-    const parts = [];
-    lines.forEach(({ pts, box }) => {
-      if (box[2] < xmin || box[0] > xmax || box[3] < ymin || box[1] > ymax) return;
-      for (let k = 0; k < pts.length; k += 2) {
-        parts.push(`${k ? "L" : "M"}${(left + (pts[k] - xmin) * sx).toFixed(1)} ${(top + (ymax - pts[k + 1]) * sy).toFixed(1)}`);
-      }
-    });
-    return parts.join("");
-  }
-
   function drawSources() {
     const svg = ui.sourcesOverlay;
     svg.replaceChildren();
@@ -561,28 +521,11 @@
     svg.toggleAttribute("hidden", !on); 
     if (!on) return;
     svg.setAttribute("viewBox", `0 0 ${shown.width} ${shown.height}`);
-    if (shown.mapBox && shown.extent) {
-      if (!borders) {
-        loadBorders();
-      } else {
-        const [left, top, right, bottom] = shown.mapBox;
-        const defs = svgEl("defs");
-        const clip = svgEl("clipPath", { id: "sources-clip" });
-        clip.append(svgEl("rect", { x: left, y: top, width: right - left, height: bottom - top }));
-        defs.append(clip);
-        const group = svgEl("g", { class: "sources-borders", "clip-path": "url(#sources-clip)" });
-        [["solid", ""], ["dashed", " is-dashed"]].forEach(([kind, extra]) => {
-          const d = borderPath(borders[kind]);
-          if (d) group.append(svgEl("path", { class: "border-halo", d }), svgEl("path", { class: "border-line" + extra, d }));
-        });
-        svg.append(defs, group);
-      }
-    }
     const dots = svgEl("g", { class: "sources-dots" });
     shown.sources.forEach(([label, x, y, n]) => {
       const dot = svgEl("circle", { cx: x, cy: y, r: 1 });
       const title = svgEl("title");
-      title.textContent = `${prettyLabel(label)} (${n} ${n === 1 ? "person" : "people"})`;
+      title.textContent = n ? `${prettyLabel(label)} (${peopleText(n)})` : prettyLabel(label);
       dot.append(title);
       dots.append(dot);
     });
@@ -598,9 +541,6 @@
     const dots = svg.querySelector(".sources-dots");
     if (dots) dots.setAttribute("stroke-width", px(1.2));
     svg.querySelectorAll("circle").forEach((c) => c.setAttribute("r", px(DOT_RADIUS)));
-    svg.querySelectorAll(".border-halo").forEach((p) => p.setAttribute("stroke-width", px(2.4)));
-    svg.querySelectorAll(".border-line").forEach((p) => p.setAttribute("stroke-width", px(1)));
-    svg.querySelectorAll(".is-dashed").forEach((p) => p.setAttribute("stroke-dasharray", `${px(5)} ${px(4)}`));
   }
 
   let settleTimer = 0;
@@ -653,7 +593,8 @@
     const [label, , , n, lat, lon, pcs] = s;
     cardIndex = i;
     card.name.textContent = prettyLabel(label);
-    card.meta.textContent = `${n} ${n === 1 ? "person" : "people"} · placed at ${fmtCoord(Number(lat), "N", "S")}, ${fmtCoord(Number(lon), "E", "W")}`;
+    const where = `${fmtCoord(Number(lat), "N", "S")}, ${fmtCoord(Number(lon), "E", "W")}`;
+    card.meta.textContent = n ? `${peopleText(n)} · placed at ${where}` : `Placed at ${where}`;
     const hasPcs = Array.isArray(pcs) && pcs.length === N_DIMS;
     card.g25.textContent = hasPcs ? [label, ...pcs.map((v) => Number(v).toFixed(6))].join(",") : "";
     card.g25.hidden = !hasPcs;
@@ -801,6 +742,23 @@
   });
   ui.regionField.hidden = !REGIONS.length;
   syncRegions();
+
+  const syncSampleSets = () => ui.sampleSetButtons.querySelectorAll("button")
+    .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.samples === sampleSet)));
+  SAMPLE_SETS.forEach((s) => {
+    const button = make("button", "choice", s.label);
+    button.type = "button";
+    button.dataset.samples = s.key;
+    button.addEventListener("click", () => {
+      if (job) return; 
+      sampleSet = s.key;
+      syncSampleSets();
+      if (shown && !ui.result.hidden && shown.request.samples !== sampleSet) createMap();
+    });
+    ui.sampleSetButtons.append(button);
+  });
+  ui.sampleSetField.hidden = SAMPLE_SETS.length < 2;
+  syncSampleSets();
 
   (cfg.samples || []).forEach((sample) => {
     if (!sample || !sample.coords) return;

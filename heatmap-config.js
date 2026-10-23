@@ -5,6 +5,12 @@ window.SITE_CONFIG = {
   imprintUrl: "",
   privacyUrl: "",
 
+  defaultSamples: "moriopoulos",
+  sampleSets: [
+    { key: "moriopoulos", label: "Advanced Moriopoulos" },
+    { key: "makedonas", label: "Makedonas G25" }
+  ],
+
   defaultRegion: "europe",
   regions: [
     { key: "world", label: "World" },
