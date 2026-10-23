@@ -118,6 +118,7 @@
     frame: $("zoom-frame"), img: $("result-img"), caption: $("result-caption"),
     zoomIn: $("zoom-in"), zoomOut: $("zoom-out"), zoomReset: $("zoom-reset"),
     download: $("download"), saveView: $("save-view"),
+    sourcesToggle: $("sources-toggle"), sourcesText: $("sources-toggle-text"), sourcesOverlay: $("sources-overlay"),
     size: $("result-size"), time: $("result-time"), table: $("nearest-table"), tableBody: $("nearest-body"),
   };
   const HINT = ui.hint.textContent;
@@ -138,6 +139,7 @@
   let region = String(cfg.defaultRegion || "europe");
   if (REGIONS.length && !REGIONS.some((r) => r.key === region)) region = REGIONS[0].key;
 
+
   let worker = null;
   let engine = "idle"; 
   let job = null; 
@@ -157,7 +159,7 @@
     if (worker || !canRun || fromFile) return;
     engine = "loading";
     try {
-      worker = new Worker("heatmap-worker.js?v=20261022", { type: "module" }); 
+      worker = new Worker("heatmap-worker.js?v=20261023b", { type: "module" }); 
     } catch (err) {
       engineFailed(err && err.message);
       return;
@@ -192,7 +194,10 @@
       else if (engine === "loading") setStatus("loading", m.text, m.progress);
     } else if (m.type === "ready") {
       engine = "ready";
-      if (!job) setStatus("ready", `Map engine ready (loaded in ${fmtSeconds(m.seconds || 0)}). Paste your coordinates or try an example.`);
+      if (!job) {
+        const tip = ui.sampleButtons.children.length ? "Paste your coordinates or try an example." : "Paste your coordinates.";
+        setStatus("ready", `Map engine ready (loaded in ${fmtSeconds(m.seconds || 0)}). ${tip}`);
+      }
     } else if (m.type === "result") {
       if (job && m.id === job.id) (job.kind === "view" ? saveViewResult : showResult)(m);
     } else if (m.type === "error") {
@@ -268,7 +273,7 @@
     const name = ui.name.value.trim();
     const label = name || (samples.length === 1 ? samples[0].name : `the average of ${samples.length} samples`);
     startJob("map", label, { coords: ui.coords.value, name: name || null,
-      maxDistance: Number(ui.maxDistance.value) || 0.08, brand: MAP_BRAND, region });
+      maxDistance: Number(ui.maxDistance.value) || 0.1, brand: MAP_BRAND, region });
   }
 
   function startJob(kind, label, request) {
@@ -302,7 +307,8 @@
     if (blobUrl) URL.revokeObjectURL(blobUrl);
     blobUrl = URL.createObjectURL(new Blob([m.png], { type: "image/png" }));
     const drawn = { ...request, region: typeof m.region === "string" && m.region ? m.region : request.region };
-    shown = { request: drawn, label, width: m.width, height: m.height, mapBox: box4(m.mapBox), extent: box4(m.extent) };
+    shown = { request: drawn, label, width: m.width, height: m.height, mapBox: box4(m.mapBox), extent: box4(m.extent),
+      sources: Array.isArray(m.sources) ? m.sources : [] };
     const where = regionLabel(drawn.region);
     if (m.width && m.height) Object.assign(ui.img, { width: m.width, height: m.height });
     ui.img.src = blobUrl;
@@ -328,6 +334,8 @@
 
     ui.placeholder.hidden = true;
     ui.result.hidden = false;
+    closeCard(); 
+    drawSources(); 
     resetZoom(); 
     setStatus("done", `Map created in ${fmtSeconds(total)}. See Figure 1 below.`, 1);
     if (ui.result.getBoundingClientRect().top > window.innerHeight * 0.7) {
@@ -417,6 +425,9 @@
     const { tx, ty } = geometry();
     ui.img.classList.toggle("is-animated", Boolean(animate));
     ui.img.style.transform = isZoomed() ? `translate(${tx}px, ${ty}px) scale(${zoom.s})` : "";
+    ui.sourcesOverlay.classList.toggle("is-animated", Boolean(animate));
+    ui.sourcesOverlay.style.transform = ui.img.style.transform; 
+    syncSources(animate);
     ui.frame.classList.toggle("is-zoomed", isZoomed());
     setDisabled(ui.zoomIn, zoom.s >= MAX_ZOOM);
     setDisabled(ui.zoomOut, !isZoomed());
@@ -459,6 +470,266 @@
   ui.zoomOut.addEventListener("click", () => zoomBy(1 / STEP, null, null, true));
   ui.zoomReset.addEventListener("click", () => resetZoom(true));
   window.addEventListener("resize", () => applyZoom());
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DOT_RADIUS = 2.6; 
+  let sourcesOn = false;
+  let borders = null; 
+  let bordersLoading = false;
+  let cardIndex = -1; 
+
+  const card = {
+    box: $("source-card"), name: $("source-card-name"), meta: $("source-card-meta"), g25: $("source-card-g25"),
+    copy: $("source-card-copy"), status: $("source-card-status"), close: $("source-card-close"),
+  };
+  const prettyLabel = (label) => String(label).replace(/_\(n=\d+\)$/, "").replace(/_/g, " ");
+  const fmtCoord = (v, pos, neg) => `${Math.abs(v).toFixed(2)}° ${v >= 0 ? pos : neg}`;
+  const svgEl = (tag, attrs) => {
+    const node = document.createElementNS(SVG_NS, tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, String(v)));
+    return node;
+  };
+
+  function pngPerScreen() {
+    const g = geometry();
+    const w = (shown && shown.width) || ui.img.naturalWidth || 0;
+    return g.dw && w ? w / g.dw / zoom.s : 4;
+  }
+
+  function projector() {
+    const g = geometry();
+    const kx = g.dw / ((shown && shown.width) || g.dw || 1);
+    const ky = g.dh / ((shown && shown.height) || g.dh || 1);
+    return (x, y) => [g.tx + zoom.s * x * kx, g.ty + zoom.s * y * ky];
+  }
+
+  const R_EARTH = 6378137;
+  const toMerc = (lon, lat) => {
+    const phi = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
+    return [(R_EARTH * lon * Math.PI) / 180, R_EARTH * Math.log(Math.tan(Math.PI / 4 + phi / 2))];
+  };
+
+  function loadBorders() {
+    if (borders || bordersLoading) return;
+    bordersLoading = true;
+    const script = make("script");
+    script.src = "heatmap-borders.js?v=20261023";
+    script.onload = () => {
+      const data = window.HEATMAP_BORDERS || {};
+      const decode = (flat) => {
+        const pts = [];
+        let lon = 0;
+        let lat = 0;
+        const box = [Infinity, Infinity, -Infinity, -Infinity];
+        for (let k = 0; k + 1 < flat.length; k += 2) {
+          lon = k ? lon + flat[k] : flat[0];
+          lat = k ? lat + flat[k + 1] : flat[1];
+          const [x, y] = toMerc(lon / 100, lat / 100);
+          pts.push(x, y);
+          box[0] = Math.min(box[0], x); box[1] = Math.min(box[1], y);
+          box[2] = Math.max(box[2], x); box[3] = Math.max(box[3], y);
+        }
+        return { pts, box };
+      };
+      borders = { solid: (data.solid || []).map(decode), dashed: (data.dashed || []).map(decode) };
+      bordersLoading = false;
+      drawSources();
+    };
+    script.onerror = () => { bordersLoading = false; }; 
+    document.head.append(script);
+  }
+
+  function borderPath(lines) {
+    const [left, top, right, bottom] = shown.mapBox;
+    const [xmin, xmax, ymin, ymax] = shown.extent;
+    const sx = (right - left) / (xmax - xmin);
+    const sy = (bottom - top) / (ymax - ymin);
+    const parts = [];
+    lines.forEach(({ pts, box }) => {
+      if (box[2] < xmin || box[0] > xmax || box[3] < ymin || box[1] > ymax) return;
+      for (let k = 0; k < pts.length; k += 2) {
+        parts.push(`${k ? "L" : "M"}${(left + (pts[k] - xmin) * sx).toFixed(1)} ${(top + (ymax - pts[k + 1]) * sy).toFixed(1)}`);
+      }
+    });
+    return parts.join("");
+  }
+
+  function drawSources() {
+    const svg = ui.sourcesOverlay;
+    svg.replaceChildren();
+    const on = sourcesOn && shown && shown.width && shown.height;
+    svg.toggleAttribute("hidden", !on); 
+    if (!on) return;
+    svg.setAttribute("viewBox", `0 0 ${shown.width} ${shown.height}`);
+    if (shown.mapBox && shown.extent) {
+      if (!borders) {
+        loadBorders();
+      } else {
+        const [left, top, right, bottom] = shown.mapBox;
+        const defs = svgEl("defs");
+        const clip = svgEl("clipPath", { id: "sources-clip" });
+        clip.append(svgEl("rect", { x: left, y: top, width: right - left, height: bottom - top }));
+        defs.append(clip);
+        const group = svgEl("g", { class: "sources-borders", "clip-path": "url(#sources-clip)" });
+        [["solid", ""], ["dashed", " is-dashed"]].forEach(([kind, extra]) => {
+          const d = borderPath(borders[kind]);
+          if (d) group.append(svgEl("path", { class: "border-halo", d }), svgEl("path", { class: "border-line" + extra, d }));
+        });
+        svg.append(defs, group);
+      }
+    }
+    const dots = svgEl("g", { class: "sources-dots" });
+    shown.sources.forEach(([label, x, y, n]) => {
+      const dot = svgEl("circle", { cx: x, cy: y, r: 1 });
+      const title = svgEl("title");
+      title.textContent = `${prettyLabel(label)} (${n} ${n === 1 ? "person" : "people"})`;
+      dot.append(title);
+      dots.append(dot);
+    });
+    svg.append(dots);
+    sizeSources();
+  }
+
+  function sizeSources() {
+    const svg = ui.sourcesOverlay;
+    if (svg.hasAttribute("hidden")) return;
+    const k = pngPerScreen();
+    const px = (v) => (v * k).toFixed(2);
+    const dots = svg.querySelector(".sources-dots");
+    if (dots) dots.setAttribute("stroke-width", px(1.2));
+    svg.querySelectorAll("circle").forEach((c) => c.setAttribute("r", px(DOT_RADIUS)));
+    svg.querySelectorAll(".border-halo").forEach((p) => p.setAttribute("stroke-width", px(2.4)));
+    svg.querySelectorAll(".border-line").forEach((p) => p.setAttribute("stroke-width", px(1)));
+    svg.querySelectorAll(".is-dashed").forEach((p) => p.setAttribute("stroke-dasharray", `${px(5)} ${px(4)}`));
+  }
+
+  let settleTimer = 0;
+  function syncSources(animate) {
+    clearTimeout(settleTimer);
+    const settle = (on) => [ui.sourcesOverlay, card.box].forEach((n) => n.classList.toggle("is-settling", on));
+    if (!animate) {
+      settle(false);
+      sizeSources();
+      placeCard();
+      return;
+    }
+    settle(true);
+    settleTimer = setTimeout(() => {
+      sizeSources();
+      placeCard();
+      settle(false);
+    }, 200);
+  }
+
+  function closeCard() {
+    cardIndex = -1;
+    card.box.hidden = true;
+  }
+
+  function placeCard() {
+    if (cardIndex < 0 || !shown || !shown.sources[cardIndex]) return;
+    const [, x, y] = shown.sources[cardIndex];
+    const [fx, fy] = projector()(x, y);
+    const fw = ui.frame.clientWidth;
+    const fh = ui.frame.clientHeight;
+    if (fx < 0 || fy < 0 || fx > fw || fy > fh) {
+      card.box.hidden = true;
+      return;
+    }
+    card.box.hidden = false;
+    const cw = card.box.offsetWidth;
+    const ch = card.box.offsetHeight;
+    let left = fx + 14;
+    let top = fy + 14;
+    if (left + cw > fw - 6) left = fx - cw - 14;
+    if (top + ch > fh - 6) top = fy - ch - 14;
+    card.box.style.left = `${ui.frame.offsetLeft + ui.frame.clientLeft + Math.max(6, left)}px`;
+    card.box.style.top = `${ui.frame.offsetTop + ui.frame.clientTop + Math.max(6, top)}px`;
+  }
+
+  function openCard(i) {
+    const s = shown && shown.sources[i];
+    if (!s) return;
+    const [label, , , n, lat, lon, pcs] = s;
+    cardIndex = i;
+    card.name.textContent = prettyLabel(label);
+    card.meta.textContent = `${n} ${n === 1 ? "person" : "people"} · placed at ${fmtCoord(Number(lat), "N", "S")}, ${fmtCoord(Number(lon), "E", "W")}`;
+    const hasPcs = Array.isArray(pcs) && pcs.length === N_DIMS;
+    card.g25.textContent = hasPcs ? [label, ...pcs.map((v) => Number(v).toFixed(6))].join(",") : "";
+    card.g25.hidden = !hasPcs;
+    card.copy.hidden = !hasPcs;
+    card.status.textContent = "";
+    card.box.hidden = false;
+    placeCard();
+  }
+
+  function dotAt(fx, fy) {
+    if (!sourcesOn || !shown || !shown.sources.length) return -1;
+    const at = projector();
+    let best = -1;
+    let bestD = DOT_RADIUS + 10;
+    shown.sources.forEach(([, x, y], i) => {
+      const [px, py] = at(x, y);
+      const d = Math.hypot(px - fx, py - fy);
+      if (d < bestD) {
+        best = i;
+        bestD = d;
+      }
+    });
+    return best;
+  }
+
+  let press = null;
+  const down = new Set(); 
+  ui.frame.addEventListener("pointerdown", (e) => {
+    if (e.isPrimary) down.clear();
+    down.add(e.pointerId);
+    press = down.size === 1 && (e.pointerType !== "mouse" || e.button === 0) ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+  });
+  ui.frame.addEventListener("pointerup", (e) => {
+    down.delete(e.pointerId);
+    if (!press || press.id !== e.pointerId) return;
+    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y) > 6;
+    press = null;
+    if (moved || !sourcesOn) return;
+    const i = dotAt(...framePoint(e.clientX, e.clientY));
+    if (i >= 0) openCard(i);
+    else closeCard();
+  });
+  ui.frame.addEventListener("pointercancel", (e) => {
+    down.delete(e.pointerId);
+    press = null;
+  });
+  ui.frame.addEventListener("lostpointercapture", (e) => down.delete(e.pointerId));
+
+  card.close.addEventListener("click", closeCard);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && cardIndex >= 0) closeCard();
+  });
+  card.copy.addEventListener("click", () => {
+    const text = card.g25.textContent;
+    const fallback = () => {
+      const range = document.createRange();
+      range.selectNodeContents(card.g25);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      card.status.textContent = "Selected: press Ctrl+C (or ⌘+C) to copy.";
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => { card.status.textContent = "Copied."; }, fallback);
+    } else {
+      fallback();
+    }
+  });
+
+  ui.sourcesToggle.addEventListener("click", () => {
+    sourcesOn = !sourcesOn;
+    ui.sourcesToggle.classList.toggle("is-on", sourcesOn); 
+    ui.sourcesText.textContent = sourcesOn ? "Hide samples" : "Show samples";
+    if (!sourcesOn) closeCard();
+    drawSources();
+  });
 
   ui.frame.addEventListener("wheel", (e) => {
     const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? ui.frame.clientHeight : 1);

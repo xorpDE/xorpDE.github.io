@@ -64,7 +64,7 @@ function render(msg) {
   let out;
   try {
     out = engine.render(String(msg.coords || ""), msg.name ? String(msg.name) : undefined,
-      Number(msg.maxDistance) || 0.08, String(msg.brand || ""), String(msg.region || "europe"), progress,
+      Number(msg.maxDistance) || 0.1, String(msg.brand || ""), String(msg.region || "europe"), progress,
       Array.isArray(msg.view) && msg.view.length === 4 ? msg.view.map(Number) : undefined);
   } catch (err) {
     self.postMessage({ type: "error", id: msg.id, kind: "internal", message: String(err && err.message || err) });
