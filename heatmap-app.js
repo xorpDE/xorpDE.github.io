@@ -28,7 +28,7 @@
     if (!url) return;
     const link = make("a", null, label);
     link.href = url;
-    legal.append(" · ", link);
+    legal.append(" | ", link);
     legal.hidden = false;
   });
 
@@ -46,9 +46,12 @@
 
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const themeButtons = document.querySelectorAll("[data-set-theme]");
+  const BAR_COLOURS = { light: "#f6f7f9", dark: "#0f1114" };
+  const barMetas = document.querySelectorAll('meta[name="theme-color"]');
   const syncTheme = () => {
     const active = root.dataset.theme || (darkQuery.matches ? "dark" : "light");
     themeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.setTheme === active)));
+    if (root.dataset.theme) barMetas.forEach((m) => m.setAttribute("content", BAR_COLOURS[active]));
   };
   themeButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -113,6 +116,7 @@
     samples: $("samples"), sampleButtons: $("sample-buttons"),
     regionField: $("region-field"), regionButtons: $("region-buttons"),
     sampleSetField: $("sampleset-field"), sampleSetButtons: $("sampleset-buttons"),
+    themeField: $("theme-field"), themeButtons: $("theme-buttons"), optionsSummary: $("options-summary"),
     status: $("status"), statusText: $("status-text"), statusTime: $("status-time"),
     progress: $("progress"), progressBar: $("progress-bar"),
     area: $("result-area"), placeholder: $("placeholder"), fileNotice: $("file-notice"), result: $("result"),
@@ -129,7 +133,18 @@
   const NO_SUPPORT = "This browser cannot run the map engine (it needs Web Workers and WebAssembly). Please use a current version of Chrome, Edge, Firefox or Safari.";
   const NO_FILE = "Maps can only be made when the page is opened through its web address (see below).";
   const SLOW_REGION = "world";
-  const SLOW_NOTE = "A world map takes about 30–90 s.";
+  const SLOW_NOTE = "A world map takes about 30 to 90 s.";
+  const autoScale = (key) => (key === SLOW_REGION ? "0.3" : "0.1");
+
+  const STAGE_TEXT = {
+    boot: "Loading the map engine (about 10 to 30 s)…",
+    packages: "Loading the map engine (about 10 to 30 s)…",
+    engine: "Loading the map data…",
+    distances: "Comparing your coordinates…",
+    kriging: "Filling in the map…",
+    drawing: "Drawing the map…",
+  };
+  const stageText = (m) => STAGE_TEXT[m.stage] || String(m.text || "");
 
   const REGIONS = (Array.isArray(cfg.regions) ? cfg.regions : []).filter((r) => r && r.key)
     .map((r) => ({ key: String(r.key), label: String(r.label || r.key) }));
@@ -146,11 +161,20 @@
   if (SAMPLE_SETS.length && !SAMPLE_SETS.some((s) => s.key === sampleSet)) sampleSet = SAMPLE_SETS[0].key;
   const sampleSetLabel = (key) => (SAMPLE_SETS.find((s) => s.key === key) || { label: key }).label;
 
+  const THEMES = (Array.isArray(cfg.themes) ? cfg.themes : []).filter((t) => t && t.key)
+    .map((t) => ({ key: String(t.key), label: String(t.label || t.key),
+      closest: String(t.closest || "red"), farthest: String(t.farthest || "dark blue") }));
+  const themeColours = (key) => THEMES.find((t) => t.key === key) || { closest: "red", farthest: "dark blue" };
+  let theme = String(cfg.defaultTheme || (THEMES[0] ? THEMES[0].key : ""));
+  if (THEMES.length && !THEMES.some((t) => t.key === theme)) theme = THEMES[0].key;
+
 
   let worker = null;
   let engine = "idle"; 
   let job = null; 
   let shown = null; 
+  let scaleTouched = false; 
+  let redrawPending = false; 
   let nextId = 1;
   let ticker = 0;
   let blobUrl = null; 
@@ -166,7 +190,7 @@
     if (worker || !canRun || fromFile) return;
     engine = "loading";
     try {
-      worker = new Worker("heatmap-worker.js?v=20261023d", { type: "module" }); 
+      worker = new Worker("heatmap-worker.js?v=20261102a", { type: "module" }); 
     } catch (err) {
       engineFailed(err && err.message);
       return;
@@ -176,7 +200,7 @@
       e.preventDefault();
       engineFailed(e.message);
     };
-    if (!job) setStatus("loading", "Loading the map engine…", 0);
+    if (!job) setStatus("loading", STAGE_TEXT.boot, 0);
   }
 
   function engineFailed(detail) {
@@ -191,19 +215,18 @@
 
   function jobText(text) {
     const t = String(text || "");
-    if (job.kind === "view") return `Saving this view: ${/^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t}`;
+    if (job.kind === "view") return `Zoomed view: ${/^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t}`;
     return job.request.region === SLOW_REGION ? `${t} ${SLOW_NOTE}` : t;
   }
 
   function onEngineMessage(m) {
     if (m.type === "status") {
-      if (job) setStatus("busy", jobText(m.text), m.progress);
-      else if (engine === "loading") setStatus("loading", m.text, m.progress);
+      if (job) setStatus("busy", jobText(stageText(m)), m.progress);
+      else if (engine === "loading") setStatus("loading", stageText(m), m.progress);
     } else if (m.type === "ready") {
       engine = "ready";
       if (!job) {
-        const tip = ui.sampleButtons.children.length ? "Paste your coordinates or try an example." : "Paste your coordinates.";
-        setStatus("ready", `Map engine ready (loaded in ${fmtSeconds(m.seconds || 0)}). ${tip}`);
+        setStatus("ready", ui.sampleButtons.children.length ? "Ready. Paste your coordinates or try an example." : "Ready. Paste your coordinates.");
       }
     } else if (m.type === "result") {
       if (job && m.id === job.id) (job.kind === "view" ? saveViewResult : showResult)(m);
@@ -213,7 +236,7 @@
         endJob();
         const detail = m.message ? ` (${m.message})` : "";
         if (isView) {
-          setStatus("error", `This view could not be drawn${detail}. Try again, or download the whole map.`);
+          setStatus("error", `The zoomed view could not be drawn${detail}. Try again, or download the whole map.`);
         } else if (m.kind === "input") {
           const text = String(m.message || "These coordinates could not be read.");
           setInputError(text.charAt(0).toUpperCase() + text.slice(1));
@@ -249,7 +272,8 @@
   }
 
   function setBusy(busy, newMap) {
-    [ui.create, ...ui.regionButtons.querySelectorAll("button"), ...ui.sampleSetButtons.querySelectorAll("button")]
+    [ui.create, ...ui.regionButtons.querySelectorAll("button"), ...ui.sampleSetButtons.querySelectorAll("button"),
+      ...ui.themeButtons.querySelectorAll("button"), ...ui.sampleButtons.querySelectorAll("button")]
       .forEach((b) => setDisabled(b, busy));
     ui.create.textContent = busy && newMap ? "Creating map…" : "Create map";
     ui.area.setAttribute("aria-busy", String(Boolean(busy && newMap)));
@@ -281,7 +305,8 @@
     const name = ui.name.value.trim();
     const label = name || (samples.length === 1 ? samples[0].name : `the average of ${samples.length} samples`);
     startJob("map", label, { coords: ui.coords.value, name: name || null,
-      maxDistance: Number(ui.maxDistance.value) || 0.1, brand: MAP_BRAND, region, samples: sampleSet || null });
+      maxDistance: Number(ui.maxDistance.value) || 0.1, brand: MAP_BRAND, region, samples: sampleSet || null,
+      theme: theme || null });
   }
 
   function startJob(kind, label, request) {
@@ -290,12 +315,12 @@
     job = { id: nextId++, kind, started: performance.now(), label, request };
     worker.postMessage({ type: "render", id: job.id, ...request });
     setBusy(true, kind === "map");
-    const first = kind === "view" ? "Saving this view: drawing the visible part as a full-size map…"
+    const first = kind === "view" ? "Zoomed view: drawing the visible part as a full-size map…"
       : request.region === SLOW_REGION ? `Starting… ${SLOW_NOTE}` : "Starting…";
     const ready = engine === "ready";
     setStatus("busy", ready ? first : "Waiting for the map engine to finish loading…", ready ? 0.3 : undefined);
     const tick = () => {
-      if (job) ui.statusTime.textContent = ` · ${Math.floor((performance.now() - job.started) / 1000)} s`;
+      if (job) ui.statusTime.textContent = ` (${Math.floor((performance.now() - job.started) / 1000)} s)`;
     };
     tick();
     ticker = setInterval(tick, 1000);
@@ -320,20 +345,25 @@
     const where = regionLabel(drawn.region);
     if (m.width && m.height) Object.assign(ui.img, { width: m.width, height: m.height });
     ui.img.src = blobUrl;
-    ui.img.alt = `Genetic distance map for ${label} (${where}). Red marks the closest regions, dark blue the most distant.`;
+    const colours = themeColours(typeof m.theme === "string" && m.theme ? m.theme : drawn.theme);
+    const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    ui.img.alt = `Genetic distance map for ${label} (${where}). ${capital(colours.closest)} marks the closest regions, ${colours.farthest} the most distant.`;
     ui.download.href = blobUrl;
     ui.download.download = m.filename || "g25-heatmap.png";
 
     const tooFar = Number.isFinite(m.closest) && Number.isFinite(m.vmax) && m.closest >= m.vmax;
+    const largest = Math.max(...[...ui.maxDistance.options].map((o) => Number(o.value) || 0));
+    const advice = m.vmax < largest - 1e-9 ? " Choose a larger maximum distance or another region."
+      : drawn.region !== "world" ? " Choose another region, such as World." : "";
     const scale = tooFar
-      ? `No place on this map is within the maximum distance of ${m.vmax.toFixed(2)} (closest: ${m.closest.toFixed(3)}); choose a larger maximum distance.`
+      ? `No place on this map is within the maximum distance of ${m.vmax.toFixed(2)} (closest: ${m.closest.toFixed(3)}).${advice}`
       : Number.isFinite(m.vmin) && Number.isFinite(m.vmax)
-        ? `Colour scale ${m.vmin.toFixed(3)}–${m.vmax.toFixed(3)}; red = closest.`
-        : "Red = closest.";
+        ? `Colour scale ${m.vmin.toFixed(3)} to ${m.vmax.toFixed(3)}; ${colours.closest} = closest.`
+        : `${capital(colours.closest)} = closest.`;
     const set = drawn.samples ? `; dataset: ${sampleSetLabel(drawn.samples)}` : "";
     ui.caption.textContent = `Genetic distance map for ${label} (${where}${set}). ${scale}`;
     ui.size.textContent = m.width && m.height ? `${m.width} × ${m.height} px` : "";
-    ui.time.textContent = `computed in ${fmtSeconds(typeof m.seconds === "number" ? m.seconds : total)}`;
+    ui.time.textContent = ""; 
 
     ui.tableBody.textContent = "";
     (Array.isArray(m.nearest) ? m.nearest : []).slice(0, 12).forEach(([population, distance], i) => {
@@ -349,9 +379,14 @@
     closeCard(); 
     drawSources(); 
     resetZoom(); 
-    setStatus("done", `Map created in ${fmtSeconds(total)}. See Figure 1 below.`, 1);
-    if (ui.result.getBoundingClientRect().top > window.innerHeight * 0.7) {
+    setStatus("done", `Map created in ${fmtSeconds(total)}.`, 1);
+    const top = ui.result.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.7) {
       ui.result.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth", block: "start" });
+    }
+    if (redrawPending) {
+      redrawPending = false;
+      if (Number(ui.maxDistance.value) !== drawn.maxDistance) createMap();
     }
   }
 
@@ -380,7 +415,7 @@
   }
 
   function updateSaveView() {
-    setDisabled(ui.saveView, !shown || Boolean(job) || (isZoomed() && !visibleView()));
+    setDisabled(ui.saveView, !shown || Boolean(job) || !isZoomed() || !visibleView());
   }
 
   function downloadBlob(blob, filename) {
@@ -398,19 +433,16 @@
     endJob();
     const filename = m.filename || "g25-heatmap-view.png";
     downloadBlob(new Blob([m.png], { type: "image/png" }), filename);
-    setStatus("done", `This view was saved as ${filename} (drawn in ${fmtSeconds(total)}).`, 1);
+    setStatus("done", `The zoomed view was saved as ${filename} (drawn in ${fmtSeconds(total)}).`, 1);
   }
 
   ui.saveView.addEventListener("click", () => {
     if (job || !shown) return;
-    if (!isZoomed()) {
-      ui.download.click(); 
-      return;
-    }
+    if (!isZoomed()) return setStatus("ready", "Zoom in on the map first, then download the zoomed view.");
     const view = visibleView();
     if (view) startJob("view", shown.label, { ...shown.request, view });
-    else if (!shown.mapBox || !shown.extent) setStatus("ready", "This map cannot be redrawn as a view. Use “Download PNG” for the whole map.");
-    else setStatus("ready", "Too little of the map is visible to save this view. Zoom out or move the map, then try again.");
+    else if (!shown.mapBox || !shown.extent) setStatus("ready", "This map cannot be redrawn as a view. Use “Download map” for the whole map.");
+    else setStatus("ready", "Too little of the map is visible for a zoomed view. Zoom out or move the map, then try again.");
   });
 
   const MAX_ZOOM = 8;
@@ -594,7 +626,7 @@
     cardIndex = i;
     card.name.textContent = prettyLabel(label);
     const where = `${fmtCoord(Number(lat), "N", "S")}, ${fmtCoord(Number(lon), "E", "W")}`;
-    card.meta.textContent = n ? `${peopleText(n)} · placed at ${where}` : `Placed at ${where}`;
+    card.meta.textContent = n ? `${peopleText(n)}, placed at ${where}` : `Placed at ${where}`;
     const hasPcs = Array.isArray(pcs) && pcs.length === N_DIMS;
     card.g25.textContent = hasPcs ? [label, ...pcs.map((v) => Number(v).toFixed(6))].join(",") : "";
     card.g25.hidden = !hasPcs;
@@ -667,7 +699,7 @@
   ui.sourcesToggle.addEventListener("click", () => {
     sourcesOn = !sourcesOn;
     ui.sourcesToggle.classList.toggle("is-on", sourcesOn); 
-    ui.sourcesText.textContent = sourcesOn ? "Hide samples" : "Show samples";
+    ui.sourcesText.textContent = sourcesOn ? "Hide populations" : "Show populations";
     if (!sourcesOn) closeCard();
     drawSources();
   });
@@ -726,6 +758,14 @@
   });
   resetZoom();
 
+  function syncOptionsSummary() {
+    const parts = [];
+    if (!ui.sampleSetField.hidden && sampleSet) parts.push(sampleSetLabel(sampleSet));
+    parts.push(`max distance ${(Number(ui.maxDistance.value) || 0.1).toFixed(2)}`);
+    if (ui.name.value.trim()) parts.push(`name “${clip(ui.name.value.trim())}”`);
+    ui.optionsSummary.textContent = parts.join(", ");
+  }
+
   const syncRegions = () => ui.regionButtons.querySelectorAll("button")
     .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.region === region)));
   REGIONS.forEach((r) => {
@@ -736,12 +776,24 @@
       if (job) return; 
       region = r.key;
       syncRegions();
+      if (!scaleTouched) ui.maxDistance.value = autoScale(region);
+      syncOptionsSummary();
       if (shown && !ui.result.hidden && shown.request.region !== region) createMap();
     });
     ui.regionButtons.append(button);
   });
   ui.regionField.hidden = !REGIONS.length;
   syncRegions();
+  ui.maxDistance.value = autoScale(region);
+
+  ui.maxDistance.addEventListener("change", () => {
+    scaleTouched = true;
+    syncOptionsSummary();
+    if (!shown || ui.result.hidden) return;
+    if (job) redrawPending = true;
+    else if (Number(ui.maxDistance.value) !== shown.request.maxDistance) createMap();
+  });
+  ui.name.addEventListener("input", syncOptionsSummary);
 
   const syncSampleSets = () => ui.sampleSetButtons.querySelectorAll("button")
     .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.samples === sampleSet)));
@@ -753,22 +805,44 @@
       if (job) return; 
       sampleSet = s.key;
       syncSampleSets();
+      syncOptionsSummary();
       if (shown && !ui.result.hidden && shown.request.samples !== sampleSet) createMap();
     });
     ui.sampleSetButtons.append(button);
   });
   ui.sampleSetField.hidden = SAMPLE_SETS.length < 2;
   syncSampleSets();
+  syncOptionsSummary();
+
+  const syncThemes = () => ui.themeButtons.querySelectorAll("button")
+    .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.theme === theme)));
+  THEMES.forEach((t) => {
+    const button = make("button", "choice", t.label);
+    button.type = "button";
+    button.dataset.theme = t.key;
+    button.addEventListener("click", () => {
+      if (job) return; 
+      theme = t.key;
+      syncThemes();
+      if (shown && !ui.result.hidden && shown.request.theme !== theme) createMap();
+    });
+    ui.themeButtons.append(button);
+  });
+  ui.themeField.hidden = THEMES.length < 2;
+  syncThemes();
 
   (cfg.samples || []).forEach((sample) => {
     if (!sample || !sample.coords) return;
     const button = make("button", "button-secondary", sample.label || "Example");
     button.type = "button";
     button.addEventListener("click", () => {
+      if (job) return; 
       ui.coords.value = sample.coords;
       ui.name.value = "";
       setInputError("");
       updateHint();
+      syncOptionsSummary();
+      createMap();
     });
     ui.sampleButtons.append(button);
   });
@@ -801,21 +875,24 @@
   }
 
   const gallery = $("gallery");
-  (cfg.examples || []).filter((x) => x && x.file).forEach((x, i) => {
-    const file = String(x.file);
-    const src = file;
-    const title = String(x.title || file);
-    const link = Object.assign(make("a"), { href: src, target: "_blank", rel: "noopener" });
+  (cfg.examples || []).filter((x) => x && x.file).forEach((x) => {
+    const src = String(x.file);
+    const title = String(x.title || src);
+    const parts = /^(.*\S)\s*\(([^()]+)\)\s*$/.exec(title);
+    const link = Object.assign(make("a", "example"), { href: src, target: "_blank", rel: "noopener" });
     link.setAttribute("aria-label", `${title}: open the full-size map`);
     const thumb = x.thumb ? String(x.thumb) : src.replace(/\.png$/i, ".webp");
-    const img = Object.assign(make("img"), { alt: "", loading: "lazy", decoding: "async", width: 900, height: 696 });
+    const img = Object.assign(make("img"), { alt: "", loading: "lazy", decoding: "async", width: 900, height: 920 });
     img.addEventListener("error", () => { if (img.src !== new URL(src, location.href).href) img.src = src; }, { once: true });
     img.src = thumb;
-    link.append(img);
+    const frame = make("span", "example-thumb");
+    frame.append(img);
     const caption = make("figcaption");
-    caption.append(make("span", "fig-label", `Figure 2${i < 26 ? String.fromCharCode(97 + i) : `.${i + 1}`}.`), ` ${title}`);
+    caption.append(make("span", "example-title", parts ? parts[1] : title));
+    if (parts) caption.append(make("span", "example-note", parts[2].charAt(0).toUpperCase() + parts[2].slice(1)));
     const figure = make("figure");
-    figure.append(link, caption);
-    gallery.append(figure);
+    figure.append(frame, caption);
+    link.append(figure);
+    gallery.append(link);
   });
 })();
