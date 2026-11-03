@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G25 Balkan Ancestry Calculator | Xorpde</title>
+  <meta name="description" content="Model your Balkan ancestry from Global25 (G25) coordinates with the Makedonas G25 calculators: Thracian, Illyrian or Ancient Macedonian, Anatolian and Slavic, a pre-Slavic profile and the closest modern and ancient populations.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1114">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Xorpde">
+  <meta property="og:title" content="G25 Balkan Ancestry Calculator">
+  <meta property="og:description" content="Thracian, Illyrian or Ancient Macedonian, Anatolian and Slavic shares from your G25 coordinates, and the closest modern and ancient populations.">
+  <meta property="og:image" content="https://xorpde.github.io/calculator-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The G25 Balkan Ancestry Calculator with an example result">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="heatmap-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="heatmap-icon-180.png">
+  <script>
+    (function (root) {
+      root.classList.add("js");
+      try {
+        var theme = localStorage.getItem("xorpde-heatmap-theme");
+        if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })(document.documentElement);
+  </script>
+  <link rel="stylesheet" href="site.css?v=20261103g">
+  <script src="site.js?v=20261103f" defer></script>
+  <script src="balkan-data.js?v=20261103f" defer></script>
+  <script src="calculator.js?v=20261103g" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#calculator">Skip to the calculator</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="site-name" href="./">Xorpde</a>
+    <nav class="site-nav" aria-label="Tools">
+      <a href="calculator.html" aria-current="page">Calculator</a>
+      <a href="pca.html">PCA plot</a>
+      <a href="heatmap.html">Heatmap</a>
+    </nav>
+    <div class="theme-toggle" role="group" aria-label="Page appearance">
+      <button type="button" data-set-theme="light" aria-pressed="false">Light</button>
+      <button type="button" data-set-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <header class="hero">
+    <h1>G25 Balkan Ancestry Calculator</h1>
+    <p class="subtitle">Models your Balkan ancestry from Global25 coordinates and lists the closest modern and ancient populations.</p>
+  </header>
+
+  <section class="card" id="calculator" aria-label="Calculator">
+    <div class="switch-row">
+      <div class="mode-toggle" role="group" aria-label="Mode">
+        <button type="button" class="mode-btn" id="modeNormal" data-mode="normal" aria-pressed="true">Ancestry calculator</button>
+        <button type="button" class="mode-btn" id="modeGhost" data-mode="ghost" aria-pressed="false">Pre-Slavic profile</button>
+      </div>
+    </div>
+    <p class="mode-hint" id="modeHint"></p>
+
+    <div class="switch-row">
+      <span class="field-label" id="modelLabel">Model</span>
+      <div class="mode-toggle" id="modelButtons" role="group" aria-labelledby="modelLabel"></div>
+      <button type="button" class="text-btn" id="editSourcesBtn" aria-expanded="false" aria-controls="sourcesPanel">Edit sources</button>
+    </div>
+    <p class="mode-hint" id="modelHint"></p>
+    <div class="editor" id="sourcesPanel" hidden>
+      <p>One source sample per line, as in Vahaduo: <code>Group:ID,PC1,PC2,...,PC25</code>. The samples are added up by the group name before the colon. Edit, add or remove lines.</p>
+      <textarea id="sourcesText" class="code" spellcheck="false" aria-label="Source samples"></textarea>
+      <p class="error" id="sourcesError" role="alert" hidden></p>
+      <div class="row">
+        <button type="button" class="copy-btn" id="applySourcesBtn">Apply</button>
+        <button type="button" class="copy-btn" id="resetSourcesBtn">Reset to default</button>
+      </div>
+    </div>
+
+    <div class="label-row">
+      <label for="coordInput">G25 coordinates <span class="opt">(scaled)</span></label>
+      <a href="heatmap.html#q-get">How do I get them?</a>
+    </div>
+    <textarea id="coordInput" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="coordHint coordError" placeholder="YourName,0.1234,0.1456,0.0234,... (25 values)"></textarea>
+    <p class="hint" id="coordHint">One line with a name and 25 comma-separated numbers.</p>
+    <p class="error" id="coordError" role="alert" hidden></p>
+    <div class="samples" id="samples" hidden>
+      <span class="samples-label" id="samplesLabel">Or try a population average:</span>
+      <div class="sample-buttons" id="sampleButtons" role="group" aria-labelledby="samplesLabel"></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="calcBtn">Calculate</button>
+    </div>
+    <noscript><p class="error">This calculator runs in your browser and needs JavaScript. Please turn it on and reload the page.</p></noscript>
+  </section>
+
+  <p class="visually-hidden" id="srStatus" role="status"></p>
+
+  <div class="results" id="results">
+    <section class="card" aria-labelledby="admixTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="admixTitle">Ancestry</h2>
+          <p class="card-sub" id="admixSub"></p>
+        </div>
+        <button type="button" class="copy-btn" id="copyResultsBtn">Copy results</button>
+      </div>
+      <div class="admix-bar" id="admixBar"></div>
+      <div class="admix-legend" id="admixLegend"></div>
+      <p class="distance-badge"><span class="distance-label">Fit distance</span> <span class="distance-val" id="fitDist"></span> <span class="distance-label" id="fitNote"></span></p>
+      <div id="ghostBlock" hidden>
+        <div class="section-divider"></div>
+        <p class="label">Pre-Slavic G25 coordinates</p>
+        <div class="coords-display" id="ghostCoords"></div>
+        <div class="row" style="margin-top:0.75rem">
+          <button type="button" class="copy-btn" id="copyGhostBtn">Copy coordinates</button>
+        </div>
+      </div>
+      <details class="info">
+        <summary id="infoSummary">What do these mean?</summary>
+        <div class="info-body" id="infoBody"></div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="distTitle">
+      <div class="card-head">
+        <div>
+          <h2 id="distTitle">Closest populations</h2>
+          <p class="card-sub" id="distSub"></p>
+        </div>
+        <button type="button" class="copy-btn" id="editSamplesBtn" aria-expanded="false" aria-controls="samplesPanel">Edit populations</button>
+      </div>
+      <div class="editor" id="samplesPanel" hidden>
+        <p>One population per line: <code>Name,PC1,PC2,...,PC25</code>. Add, edit or remove reference populations.</p>
+        <textarea id="samplesText" class="code" spellcheck="false" aria-label="Reference populations" style="min-height:11rem"></textarea>
+        <p class="error" id="samplesError" role="alert" hidden></p>
+        <div class="row">
+          <button type="button" class="copy-btn" id="applySamplesBtn">Apply</button>
+          <button type="button" class="copy-btn" id="resetSamplesBtn">Reset to default</button>
+        </div>
+      </div>
+      <div class="period-filters" id="periodFilters" role="group" aria-label="Period">
+        <button type="button" class="filter-btn" data-period="all" aria-pressed="false">All</button>
+        <button type="button" class="filter-btn" data-period="modern" aria-pressed="true">Modern</button>
+        <button type="button" class="filter-btn" data-period="ancient" aria-pressed="false">Ancient</button>
+      </div>
+      <input type="search" class="search" id="searchInput" placeholder="Filter by name or country" aria-label="Filter populations by name or country">
+      <div id="distTableWrap"></div>
+    </section>
+  </div>
+
+  <h2 class="section-title" id="about">About the calculator</h2>
+  <section class="about" aria-labelledby="about">
+    <p>The calculator looks for the mix of individual source samples that comes closest to your coordinates, the same way Vahaduo does it with 500 slots, and then adds the samples up by group. It averages 16 such runs, so the same coordinates always give the same numbers. With this many individual samples most Balkan populations fit almost exactly, so very small fit distances are normal.</p>
+    <p>For the pre-Slavic profile, the Slavic part of your best mix is subtracted from your coordinates and the rest is modelled again with the other sources. The larger your Slavic share, the less stable this gets.</p>
+    <h3 id="credits">Data and credits</h3>
+    <p>The calculator models and the modern and ancient averages come from Makedonas G25 (<a href="https://codeberg.org/MAKEDONAS/MAKEDONAS-G25" target="_blank" rel="noopener">codeberg.org/MAKEDONAS/MAKEDONAS-G25</a>). The coordinates are in the Global25 system by Davidski (Eurogenes), and the fitting method follows Vahaduo Admixture JS.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Made by Xorpde</p>
+  </div>
+</footer>
+</body>
+</html>

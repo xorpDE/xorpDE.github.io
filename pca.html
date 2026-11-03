@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Balkan PCA plot | Xorpde</title>
+  <meta name="description" content="An interactive PCA plot of modern Balkan populations and ancient populations from the Balkans and elsewhere (Makedonas G25). Paste your Global25 (G25) coordinates and see where you fall.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1114">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Xorpde">
+  <meta property="og:title" content="Balkan PCA plot">
+  <meta property="og:description" content="See where your G25 coordinates fall among modern Balkan populations and ancient populations from the Balkans and elsewhere.">
+  <meta property="og:image" content="https://xorpde.github.io/pca-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A PCA plot of Balkan populations">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="heatmap-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="heatmap-icon-180.png">
+  <script>
+    (function (root) {
+      root.classList.add("js");
+      try {
+        var theme = localStorage.getItem("xorpde-heatmap-theme");
+        if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
+      } catch (e) {}
+    })(document.documentElement);
+  </script>
+  <link rel="stylesheet" href="site.css?v=20261103g">
+  <script src="site.js?v=20261103f" defer></script>
+  <script src="balkan-data.js?v=20261103f" defer></script>
+  <script src="pca.js?v=20261103h" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#plot">Skip to the plot</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="site-name" href="./">Xorpde</a>
+    <nav class="site-nav" aria-label="Tools">
+      <a href="calculator.html">Calculator</a>
+      <a href="pca.html" aria-current="page">PCA plot</a>
+      <a href="heatmap.html">Heatmap</a>
+    </nav>
+    <div class="theme-toggle" role="group" aria-label="Page appearance">
+      <button type="button" data-set-theme="light" aria-pressed="false">Light</button>
+      <button type="button" data-set-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+  <header class="hero">
+    <h1>Balkan PCA plot</h1>
+    <p class="subtitle">Shows where you fall among modern Balkan populations and ancient ones from the Balkans and elsewhere.</p>
+  </header>
+
+  <section class="card" aria-label="Your coordinates">
+    <div class="label-row">
+      <label for="coordInput">G25 coordinates <span class="opt">(scaled, one or more lines)</span></label>
+      <a href="heatmap.html#q-get">How do I get them?</a>
+    </div>
+    <textarea id="coordInput" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="coordHint coordError" placeholder="YourName,0.1234,0.1456,0.0234,... (25 values)"></textarea>
+    <p class="hint" id="coordHint">One sample per line: a name and 25 comma-separated numbers. Every line becomes a point.</p>
+    <p class="error" id="coordError" role="alert" hidden></p>
+    <div class="samples" id="samples" hidden>
+      <span class="samples-label" id="samplesLabel">Or add a population average:</span>
+      <div class="sample-buttons" id="sampleButtons" role="group" aria-labelledby="samplesLabel"></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="plotBtn">Plot</button>
+      <button type="button" class="btn btn-secondary" id="clearBtn">Clear</button>
+    </div>
+    <noscript><p class="error">This plot runs in your browser and needs JavaScript. Please turn it on and reload the page.</p></noscript>
+  </section>
+
+  <section class="card plot-card" id="plot" aria-labelledby="plotTitle">
+    <div class="card-head">
+      <div>
+        <h2 id="plotTitle">PCA of Balkan populations</h2>
+        <p class="card-sub" id="plotSub"></p>
+      </div>
+    </div>
+    <div class="plot-toolbar">
+      <div class="axis-pick" role="group" aria-label="Horizontal axis"><span class="field-label">X</span><span id="axisX"></span></div>
+      <div class="axis-pick" role="group" aria-label="Vertical axis"><span class="field-label">Y</span><span id="axisY"></span></div>
+      <label class="check"><input type="checkbox" id="showAncient" checked> Ancient populations</label>
+      <label class="check"><input type="checkbox" id="showNames" checked> Names</label>
+      <div class="row">
+        <button type="button" class="pc-btn" id="zoomIn" aria-label="Zoom in">+</button>
+        <button type="button" class="pc-btn" id="zoomOut" aria-label="Zoom out">-</button>
+        <button type="button" class="pc-btn" id="resetView">Reset view</button>
+        <button type="button" class="pc-btn" id="saveBtn">Save image</button>
+      </div>
+    </div>
+    <div class="plot-wrap" id="plotWrap">
+      <canvas id="pcaCanvas" tabindex="0" role="img" aria-label="PCA plot of Balkan populations. Arrow keys move the view, plus and minus zoom, 0 resets it." aria-describedby="plotStatus"></canvas>
+    </div>
+    <div class="plot-legend" id="legend"></div>
+    <p class="plot-help">Scroll or pinch to zoom and drag to move. Hover over or tap a dot to see its name, or zoom in to see all names. After clicking the plot you can also use the arrow keys, + and -.</p>
+    <p class="visually-hidden" id="plotStatus" role="status"></p>
+    <div class="plot-tooltip" id="tooltip" aria-hidden="true"></div>
+  </section>
+
+  <h2 class="section-title" id="about">How to read the plot</h2>
+  <section class="about" aria-labelledby="about">
+    <p>Populations that sit close together are genetically similar. The plot only shows the main directions of variation, so two populations can look close here and still differ in the full 25 coordinates. The distance table in the calculator uses all of them.</p>
+    <p>The first axis runs from the Mediterranean on the left to the Slavic north on the right, the second from the East Mediterranean at the bottom to the Paleo-Balkan populations at the top. PC3 and PC4 show smaller differences. You can switch to them with the X and Y buttons.</p>
+    <p id="aboutData"></p>
+    <h3 id="credits">Data and credits</h3>
+    <p>The modern and ancient averages and the calculator sources come from Makedonas G25 (<a href="https://codeberg.org/MAKEDONAS/MAKEDONAS-G25" target="_blank" rel="noopener">codeberg.org/MAKEDONAS/MAKEDONAS-G25</a>), in the Global25 system by Davidski (Eurogenes).</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Made by Xorpde</p>
+  </div>
+</footer>
+</body>
+</html>

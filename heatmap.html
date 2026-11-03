@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Xorpde Heatmap: Genetic distance maps from G25 coordinates</title>
-  <meta name="description" content="Paste your G25 coordinates and get a free map of the regions genetically closest to you. Computed in your browser; nothing is uploaded.">
+  <title>Genetic distance maps from G25 coordinates | Xorpde</title>
+  <meta name="description" content="Paste your G25 coordinates and get a free map of the regions genetically closest to you. The map is made in your browser and nothing is uploaded.">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1114">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Xorpde Heatmap">
+  <meta property="og:site_name" content="Xorpde">
   <meta property="og:title" content="Genetic distance maps from G25 coordinates">
-  <meta property="og:description" content="See which regions are genetically closest to you. Free, and computed in your browser.">
+  <meta property="og:description" content="See which regions are genetically closest to your G25 coordinates.">
   <meta property="og:image" content="https://xorpde.github.io/heatmap-og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -28,22 +28,20 @@
       } catch (e) {}
     })(document.documentElement);
   </script>
-  <link rel="stylesheet" href="heatmap-styles.css?v=20261103c">
-  <script src="heatmap-config.js?v=20261102e" defer></script>
-  <script src="heatmap-app.js?v=20261102e" defer></script>
+  <link rel="stylesheet" href="heatmap-styles.css?v=20261103g">
+  <script src="heatmap-config.js?v=20261103a" defer></script>
+  <script src="heatmap-app.js?v=20261103f" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#create">Skip to the map tool</a>
 
   <header class="site-header">
-    <div class="wrap home-bar"><a href="./"><span aria-hidden="true">← </span>G25 Balkan Ancestry Calculator</a></div>
     <div class="wrap header-inner">
-      <a class="site-name" href="#top" data-brand>Xorpde Heatmap</a>
-      <nav class="site-nav" aria-label="Sections">
-        <a href="#create">Create</a>
-        <a href="#examples">Examples</a>
-        <a href="#method">How it works</a>
-        <a href="#questions">Questions</a>
+      <a class="site-name" href="./">Xorpde</a>
+      <nav class="site-nav" aria-label="Tools">
+        <a href="calculator.html">Calculator</a>
+        <a href="pca.html">PCA plot</a>
+        <a href="heatmap.html" aria-current="page">Heatmap</a>
       </nav>
       <div class="theme-toggle" role="group" aria-label="Page appearance">
         <button type="button" data-set-theme="light" aria-pressed="false">Light</button>
@@ -55,7 +53,13 @@
   <main class="wrap" id="top">
     <header class="hero">
       <h1>Genetic distance maps from G25&nbsp;coordinates</h1>
-      <p class="subtitle">See which regions are genetically closest to you. Free, and computed in your browser: nothing is uploaded.</p>
+      <p class="subtitle">See which regions are genetically closest to you. The map is made in your browser and nothing is uploaded.</p>
+      <nav class="page-links" aria-label="On this page">
+        <a href="#create">Create your map</a>
+        <a href="#examples">Examples</a>
+        <a href="#method">How it works</a>
+        <a href="#questions">Questions</a>
+      </nav>
     </header>
 
     <section class="section" id="create" aria-labelledby="create-title">
@@ -67,13 +71,13 @@
             <label for="coords">G25 coordinates <span class="opt">(scaled)</span></label>
             <a href="#q-get">How do I get them?</a>
           </div>
-          <textarea id="coords" name="coords" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="coords-hint coords-error" placeholder="YourName,0.1254,0.1342,… (25 values)"></textarea>
+          <textarea id="coords" name="coords" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="coords-hint coords-error" placeholder="YourName,0.1254,0.1342,... (25 values)"></textarea>
           <p class="hint" id="coords-hint">A name followed by 25 comma-separated numbers. Several lines are averaged into one map.</p>
           <p class="error" id="coords-error" role="alert" hidden></p>
         </div>
 
         <div class="samples" id="samples" hidden>
-          <span class="samples-label" id="samples-label">No coordinates at hand? Try an example:</span>
+          <span class="samples-label" id="samples-label">Or try an example:</span>
           <div class="sample-buttons" id="sample-buttons" role="group" aria-labelledby="samples-label"></div>
         </div>
 
@@ -120,7 +124,7 @@
 
         <div class="submit-row">
           <button class="button" id="create-button" type="submit">Create map</button>
-          <p class="status" id="status" data-state="idle"><span id="status-text" role="status" aria-live="polite">Loading the map engine…</span><span class="status-time" id="status-time" aria-hidden="true"></span></p>
+          <p class="status" id="status" data-state="idle"><span id="status-text" role="status" aria-live="polite">Loading the map engine...</span><span class="status-time" id="status-time" aria-hidden="true"></span></p>
           <div class="progress" id="progress" aria-hidden="true"><span id="progress-bar"></span></div>
         </div>
         <noscript><p class="error">This tool runs in your browser and needs JavaScript. Please enable it and reload the page.</p></noscript>
@@ -140,7 +144,7 @@
           <figure class="figure">
             <div class="zoom">
               <div class="map-toolbar">
-                <button type="button" class="button-outline tool-button" id="sources-toggle" aria-describedby="sources-note"><svg class="action-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="4" cy="5" r="1.9" fill="currentColor"/><circle cx="11" cy="4" r="1.5" fill="currentColor"/><circle cx="7.5" cy="10.5" r="2.3" fill="currentColor"/><circle cx="12.5" cy="12" r="1.3" fill="currentColor"/></svg><span id="sources-toggle-text">Show populations</span></button>
+                <button type="button" class="button-outline tool-button" id="sources-toggle" aria-describedby="sources-note"><span id="sources-toggle-text">Show populations</span></button>
                 <div class="zoom-controls" role="group" aria-label="Zoom">
                   <button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
                   <button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out"><svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
@@ -166,11 +170,11 @@
           </figure>
 
           <div class="result-actions">
-            <a class="button action-button" id="download" href="#" download><svg class="action-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Download map</a>
-            <button type="button" class="button-outline action-button" id="save-view" aria-describedby="zoom-help"><svg class="action-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Download zoomed view</button>
-            <p class="result-meta"><span id="result-size"></span><span id="result-time"></span></p>
+            <a class="button action-button" id="download" href="#" download>Download map</a>
+            <button type="button" class="button-outline action-button" id="save-view" aria-describedby="zoom-help">Download zoomed view</button>
+            <p class="result-meta"><span id="result-size"></span></p>
           </div>
-          <p class="hint result-hint"><span id="zoom-help">Zoom with the mouse wheel, a pinch or the zoom buttons, and drag to move. “Download zoomed view” saves the visible part as a full map.</span> <span id="sources-note">“Show populations” marks the populations the map is computed from; select a dot for its name and coordinates.</span></p>
+          <p class="hint result-hint"><span id="zoom-help">Zoom with the mouse wheel, a pinch or the zoom buttons, and drag to move. "Download zoomed view" saves the visible part as a full map.</span> <span id="sources-note">"Show populations" marks the populations the map is computed from. Click a dot to see its name and coordinates.</span></p>
 
           <table class="data-table" id="nearest-table">
             <caption>Your closest populations <span class="opt">(lower distance means more similar)</span></caption>
@@ -186,7 +190,7 @@
     <section class="section" id="examples" aria-labelledby="examples-title">
       <h2 id="examples-title">Examples</h2>
       <div class="section-body">
-        <p class="lead">Maps of published population averages in the three colour themes. Select one to open it in full size.</p>
+        <p class="lead">Maps of published population averages in the three colour themes. Click a map to open it in full size.</p>
         <div class="gallery" id="gallery"></div>
       </div>
     </section>
@@ -195,10 +199,10 @@
       <h2 id="method-title">How it works</h2>
       <div class="section-body">
         <ol class="steps">
-          <li><h3>Compare</h3><p>Your coordinates are compared with every population of the chosen dataset. A lower distance means more similar.</p></li>
-          <li><h3>Place</h3><p>Each population sits at its homeland; diaspora and outlier groups are left out. “Show populations” marks them on your map.</p></li>
-          <li><h3>Fill in</h3><p>The space between the populations is filled in smoothly (kriging).</p></li>
-          <li><h3>Colour</h3><p>Land is coloured along the scale under the map, from the closest places to the maximum distance or more. Lines mark steps of 0.01, wider on wide scales.</p></li>
+          <li><p>Your coordinates are compared with every population in the chosen dataset.</p></li>
+          <li><p>Each population is placed in its home region, and "Show populations" marks these places on your map. Diaspora and outlier groups are left out.</p></li>
+          <li><p>The gaps between the populations are filled in by kriging.</p></li>
+          <li><p>The land is coloured with the scale shown under the map. Contour lines are drawn every 0.01, or further apart on wide scales.</p></li>
         </ol>
       </div>
     </section>
@@ -212,11 +216,11 @@
         </details>
         <details id="q-what">
           <summary>What are G25 coordinates?</summary>
-          <p>Global25 (G25), from the Eurogenes project by Davidski, summarises a person’s DNA as 25 numbers. The closer two sets of numbers are, the more similar the people behind them.</p>
+          <p>Global25 (G25), from the Eurogenes project by Davidski, summarises a person's DNA as 25 numbers. The closer two sets of numbers are, the more similar the people behind them.</p>
         </details>
         <details id="q-colours">
           <summary>What do the colours and numbers mean?</summary>
-          <p>Each place is coloured by how close its native population is to your coordinates; the scale under the map shows which colour means close. The numbers are genetic distances. As a rough guide, below 0.02 is a very close match, around 0.05 is typical between different parts of Europe, and 0.10 or more is far apart.</p>
+          <p>Each place is coloured by how close its native population is to your coordinates. The scale under the map shows which colour means close. The numbers are genetic distances. As a rough guide, below 0.02 is a very close match, around 0.05 is typical between different parts of Europe, and 0.10 or more is far apart.</p>
         </details>
         <details id="q-scale">
           <summary>Why is my map almost all one colour?</summary>
@@ -224,11 +228,11 @@
         </details>
         <details id="q-dataset">
           <summary>Which dataset should I choose?</summary>
-          <p>Advanced Moriopoulos and Makedonas G25 are two separate collections of averages of modern populations. Start with the default; the other gives a second view, and the results can differ slightly.</p>
+          <p>Advanced Moriopoulos and Makedonas G25 are two separate collections of averages of modern populations. Start with the default. The other one gives a second view, and the results can differ slightly.</p>
         </details>
         <details id="q-upload">
           <summary>Is anything uploaded?</summary>
-          <p>No. Your coordinates stay on your device: the map is computed in your browser. There are no accounts, cookies or analytics; only your light or dark choice is saved, in your browser. The map engine itself (Pyodide) is downloaded from the jsDelivr network and never receives your coordinates.</p>
+          <p>No. The map is computed in your browser, so your coordinates stay on your device. The site has no accounts, cookies or analytics. Only your choice of light or dark mode is saved in the browser. The map engine (Pyodide) is downloaded from jsDelivr and never gets your coordinates.</p>
         </details>
       </div>
     </section>
@@ -237,20 +241,20 @@
       <h2 id="references-title">Data and credits</h2>
       <div class="section-body">
         <ul class="credits">
-          <li id="ref-1"><strong>Population averages:</strong> Advanced Moriopoulos (Moriopoulos Collection) and Makedonas G25, in the Global25 system by Davidski (Eurogenes).</li>
-          <li id="ref-2"><strong>Land outlines:</strong> Natural Earth, 1:10m and 1:50m land, public domain. <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">naturalearthdata.com</a></li>
-          <li id="ref-3"><strong>In your browser:</strong> Pyodide (Python compiled to WebAssembly). <a href="https://pyodide.org/" target="_blank" rel="noopener">pyodide.org</a></li>
-          <li id="ref-4"><strong>Computing and drawing:</strong> NumPy, SciPy and Matplotlib; map lettering in the Inter typeface (SIL Open Font License).</li>
-          <li id="ref-5"><strong>Method:</strong> ordinary kriging (G. Matheron, 1963), computed with a PyKrige-compatible implementation.</li>
+          <li id="ref-1">Population averages from Advanced Moriopoulos (Moriopoulos Collection) and Makedonas G25, in the Global25 system by Davidski (Eurogenes).</li>
+          <li id="ref-2">Land outlines from the Natural Earth 1:10m and 1:50m land data, public domain. <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">naturalearthdata.com</a></li>
+          <li id="ref-3">Pyodide runs the Python map code in the browser. <a href="https://pyodide.org/" target="_blank" rel="noopener">pyodide.org</a></li>
+          <li id="ref-4">Computed and drawn with NumPy, SciPy and Matplotlib. Map lettering in the Inter typeface (SIL Open Font License).</li>
+          <li id="ref-5">Interpolation by ordinary kriging (G. Matheron, 1963), with code that gives the same results as PyKrige.</li>
         </ul>
-        <p class="disclaimer">For curiosity and learning: the map shows genetic similarity to modern populations, not identity, nationality or health.</p>
+        <p class="disclaimer">The map only shows genetic similarity to modern populations. It does not tell you your nationality or identity, and it says nothing about health.</p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>Free tool, computed in your browser | <a href="#references">Data and credits</a><span id="legal-links" hidden></span></p>
+      <p>Made by Xorpde | <a href="#references">Data and credits</a><span id="legal-links" hidden></span></p>
     </div>
   </footer>
 </body>

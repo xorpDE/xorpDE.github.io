@@ -5,17 +5,7 @@ const BUNDLE_URL = new URL("heatmap-engine.zip", self.location.href).href;
 const ENGINE_DIR = "/home/pyodide/engine";
 const PACKAGE_DIR = `${ENGINE_DIR}/g25heatmap`;
 
-const started = performance.now();
 let engine = null;
-let pyodideRef = null;
-
-function memoryMB() {
-  try {
-    return Math.round(pyodideRef._module.HEAP8.length / 1048576);
-  } catch (err) {
-    return null;
-  }
-}
 let queue = Promise.resolve();
 
 function status(stage, text, progress = null) {
@@ -23,12 +13,11 @@ function status(stage, text, progress = null) {
 }
 
 async function init() {
-  status("boot", "Downloading the map engine (only the first time)…", 0.02);
+  status("boot", "Downloading the map engine (only the first time)...", 0.02);
   const pyodide = await loadPyodide({ indexURL: PYODIDE_BASE });
-  pyodideRef = pyodide;
-  status("packages", "Loading numpy, scipy and matplotlib…", 0.08);
+  status("packages", "Loading numpy, scipy and matplotlib...", 0.08);
   await pyodide.loadPackage(["numpy", "scipy", "matplotlib", "pillow"]);
-  status("engine", "Loading the reference populations and map data…", 0.24);
+  status("engine", "Loading the reference populations and map data...", 0.24);
   const response = await fetch(BUNDLE_URL, { cache: "no-cache" });
   if (!response.ok) throw new Error(`could not download ${BUNDLE_URL} (HTTP ${response.status})`);
   pyodide.unpackArchive(await response.arrayBuffer(), "zip", { extractDir: PACKAGE_DIR });
@@ -44,7 +33,7 @@ async function init() {
   engine = pyodide.pyimport("g25heatmap.webapp");
   engine.warmup();
   status("ready", "Map engine ready.", null);
-  self.postMessage({ type: "ready", seconds: (performance.now() - started) / 1000 });
+  self.postMessage({ type: "ready" });
 }
 
 const ready = init().catch((err) => {
@@ -58,8 +47,7 @@ const ready = init().catch((err) => {
 });
 
 function render(msg) {
-  const t0 = performance.now();
-  status("distances", "Reading your coordinates…", 0.3);
+  status("distances", "Reading your coordinates...", 0.3);
   const progress = (stage, text, fraction) => status(stage, text, fraction);
   let out;
   try {
@@ -82,8 +70,7 @@ function render(msg) {
     pngProxy.destroy();
     const png = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     status("done", "Done.", 1);
-    self.postMessage({ type: "result", id: msg.id, png, ...meta, memoryMB: memoryMB(),
-      seconds: (performance.now() - t0) / 1000 }, [png]);
+    self.postMessage({ type: "result", id: msg.id, png, ...meta }, [png]);
   } finally {
     out.destroy();
   }

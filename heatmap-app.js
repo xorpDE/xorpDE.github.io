@@ -34,7 +34,9 @@
 
   const openDetails = (hash) => {
     if (!hash || hash.length < 2) return;
-    const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    let id = "";
+    try { id = decodeURIComponent(hash.slice(1)); } catch (e) { return; } 
+    const target = document.getElementById(id);
     if (target && target.tagName === "DETAILS") target.open = true;
   };
   document.addEventListener("click", (e) => {
@@ -64,13 +66,25 @@
     });
   });
   if (darkQuery.addEventListener) darkQuery.addEventListener("change", syncTheme);
+  const applySavedTheme = () => {
+    let saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch (err) {   }
+    if (saved === "light" || saved === "dark") root.dataset.theme = saved;
+    else {
+      delete root.dataset.theme;
+      barMetas.forEach((m) => m.setAttribute("content", /dark/.test(m.media) ? BAR_COLOURS.dark : BAR_COLOURS.light));
+    }
+    syncTheme();
+  };
+  window.addEventListener("pageshow", (e) => { if (e.persisted) applySavedTheme(); });
+  window.addEventListener("storage", (e) => { if (e.key === THEME_KEY) applySavedTheme(); });
   syncTheme();
 
   class InputError extends Error {}
   const NUMBER = /^[+-]?(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?\d+)?$/i;
   const NON_FINITE = /^[+-]?(?:inf(?:inity)?|nan)$/i;
   const toFloat = (p) => (NUMBER.test(p) ? Number(p.replace(/_/g, "")) : NON_FINITE.test(p) ? NaN : null);
-  const clip = (s) => (s.length > 24 ? s.slice(0, 23) + "…" : s);
+  const clip = (s) => (s.length > 24 ? s.slice(0, 23) + "..." : s);
 
   function parseLine(raw, lineno) {
     let line = raw.replace(/[\ufeff\u200b]/g, "").replace(/\u2212/g, "-").trim();
@@ -90,11 +104,11 @@
     if (vals.length - first > N_DIMS && vals.slice(first).every((v) => v !== null)) first = vals.length - N_DIMS;
     const bad = vals.findIndex((v, i) => i >= first && v === null);
     if (bad >= 0) {
-      throw new InputError(`Line ${lineno}: “${clip(parts[bad])}” is not a number. After the name, a G25 line contains only numbers.`);
+      throw new InputError(`Line ${lineno}: "${clip(parts[bad])}" is not a number. After the name, a G25 line contains only numbers.`);
     }
     const nums = vals.slice(first);
     if (nums.length !== N_DIMS) {
-      throw new InputError(`Line ${lineno} has ${nums.length} number${nums.length === 1 ? "" : "s"}, but a G25 line needs exactly ${N_DIMS} (Name,PC1,…,PC25). Please paste the complete line.`);
+      throw new InputError(`Line ${lineno} has ${nums.length} number${nums.length === 1 ? "" : "s"}, but a G25 line needs exactly ${N_DIMS} (Name,PC1,...,PC25). Please paste the complete line.`);
     }
     if (!nums.every(Number.isFinite)) throw new InputError(`Line ${lineno}: the coordinates must be ordinary numbers.`);
     return { name: parts.slice(0, first).join(" ").trim() || `Sample${lineno}`, nums };
@@ -106,7 +120,7 @@
       const sample = parseLine(line, i + 1);
       if (sample) samples.push(sample);
     });
-    if (!samples.length) throw new InputError("No G25 coordinates found. Paste a line like “YourName,0.1254,0.1342,…”: a name followed by 25 numbers.");
+    if (!samples.length) throw new InputError("No G25 coordinates found. Paste a line like 'YourName,0.1254,0.1342,...': a name followed by 25 numbers.");
     return samples;
   }
 
@@ -124,7 +138,7 @@
     zoomIn: $("zoom-in"), zoomOut: $("zoom-out"), zoomReset: $("zoom-reset"),
     download: $("download"), saveView: $("save-view"),
     sourcesToggle: $("sources-toggle"), sourcesText: $("sources-toggle-text"), sourcesOverlay: $("sources-overlay"),
-    size: $("result-size"), time: $("result-time"), table: $("nearest-table"), tableBody: $("nearest-body"),
+    size: $("result-size"), table: $("nearest-table"), tableBody: $("nearest-body"),
   };
   const HINT = ui.hint.textContent;
   const NAME_PLACEHOLDER = ui.name.placeholder;
@@ -137,12 +151,12 @@
   const autoScale = (key) => (key === SLOW_REGION ? "0.3" : "0.1");
 
   const STAGE_TEXT = {
-    boot: "Loading the map engine (about 10 to 30 s)…",
-    packages: "Loading the map engine (about 10 to 30 s)…",
-    engine: "Loading the map data…",
-    distances: "Comparing your coordinates…",
-    kriging: "Filling in the map…",
-    drawing: "Drawing the map…",
+    boot: "Loading the map engine (about 10 to 30 s)...",
+    packages: "Loading the map engine (about 10 to 30 s)...",
+    engine: "Loading the map data...",
+    distances: "Comparing your coordinates...",
+    kriging: "Filling in the map...",
+    drawing: "Drawing the map...",
   };
   const stageText = (m) => STAGE_TEXT[m.stage] || String(m.text || "");
 
@@ -190,7 +204,7 @@
     if (worker || !canRun || fromFile) return;
     engine = "loading";
     try {
-      worker = new Worker("heatmap-worker.js?v=20261102a", { type: "module" }); 
+      worker = new Worker("heatmap-worker.js?v=20261103b", { type: "module" }); 
     } catch (err) {
       engineFailed(err && err.message);
       return;
@@ -210,7 +224,7 @@
     engine = "failed";
     if (job) endJob();
     const text = detail && /^the map engine/i.test(detail) ? detail.replace(/\.?\s*$/, "") : `${what}${detail ? ` (${detail})` : ""}`;
-    setStatus("error", `${text}. Check your internet connection, then press “Create map” to try again.`);
+    setStatus("error", `${text}. Check your internet connection, then press "Create map" to try again.`);
   }
 
   function jobText(text) {
@@ -242,7 +256,7 @@
           setInputError(text.charAt(0).toUpperCase() + text.slice(1));
           setStatus("ready", "Please check your coordinates and try again.");
         } else {
-          setStatus("error", `The map could not be drawn${detail}. Press “Create map” to try again.`);
+          setStatus("error", `The map could not be drawn${detail}. Press "Create map" to try again.`);
         }
       } else if (m.id == null) {
         engineFailed(m.message);
@@ -267,15 +281,15 @@
     ui.hint.classList.toggle("is-ok", Boolean(samples));
     ui.name.placeholder = samples && samples.length === 1 ? samples[0].name : NAME_PLACEHOLDER;
     if (!samples) ui.hint.textContent = HINT;
-    else if (samples.length === 1) ui.hint.textContent = `✓ ${samples[0].name}: 25 values`;
-    else ui.hint.textContent = `✓ ${samples.length} samples, averaged into one map`;
+    else if (samples.length === 1) ui.hint.textContent = `${samples[0].name}: 25 values`;
+    else ui.hint.textContent = `${samples.length} samples, averaged into one map`;
   }
 
   function setBusy(busy, newMap) {
     [ui.create, ...ui.regionButtons.querySelectorAll("button"), ...ui.sampleSetButtons.querySelectorAll("button"),
       ...ui.themeButtons.querySelectorAll("button"), ...ui.sampleButtons.querySelectorAll("button")]
       .forEach((b) => setDisabled(b, busy));
-    ui.create.textContent = busy && newMap ? "Creating map…" : "Create map";
+    ui.create.textContent = busy && newMap ? "Creating map..." : "Create map";
     ui.area.setAttribute("aria-busy", String(Boolean(busy && newMap)));
     ui.result.classList.toggle("is-stale", Boolean(busy && newMap));
     updateSaveView();
@@ -315,10 +329,10 @@
     job = { id: nextId++, kind, started: performance.now(), label, request };
     worker.postMessage({ type: "render", id: job.id, ...request });
     setBusy(true, kind === "map");
-    const first = kind === "view" ? "Zoomed view: drawing the visible part as a full-size map…"
-      : request.region === SLOW_REGION ? `Starting… ${SLOW_NOTE}` : "Starting…";
+    const first = kind === "view" ? "Zoomed view: drawing the visible part as a full-size map..."
+      : request.region === SLOW_REGION ? `Starting... ${SLOW_NOTE}` : "Starting...";
     const ready = engine === "ready";
-    setStatus("busy", ready ? first : "Waiting for the map engine to finish loading…", ready ? 0.3 : undefined);
+    setStatus("busy", ready ? first : "Waiting for the map engine to finish loading...", ready ? 0.3 : undefined);
     const tick = () => {
       if (job) ui.statusTime.textContent = ` (${Math.floor((performance.now() - job.started) / 1000)} s)`;
     };
@@ -358,12 +372,11 @@
     const scale = tooFar
       ? `No place on this map is within the maximum distance of ${m.vmax.toFixed(2)} (closest: ${m.closest.toFixed(3)}).${advice}`
       : Number.isFinite(m.vmin) && Number.isFinite(m.vmax)
-        ? `Colour scale ${m.vmin.toFixed(3)} to ${m.vmax.toFixed(3)}; ${colours.closest} = closest.`
+        ? `Colour scale ${m.vmin.toFixed(3)} to ${m.vmax.toFixed(3)}, ${colours.closest} = closest.`
         : `${capital(colours.closest)} = closest.`;
-    const set = drawn.samples ? `; dataset: ${sampleSetLabel(drawn.samples)}` : "";
+    const set = drawn.samples ? `, dataset: ${sampleSetLabel(drawn.samples)}` : "";
     ui.caption.textContent = `Genetic distance map for ${label} (${where}${set}). ${scale}`;
-    ui.size.textContent = m.width && m.height ? `${m.width} × ${m.height} px` : "";
-    ui.time.textContent = ""; 
+    ui.size.textContent = m.width && m.height ? `${m.width} x ${m.height} px` : "";
 
     ui.tableBody.textContent = "";
     (Array.isArray(m.nearest) ? m.nearest : []).slice(0, 12).forEach(([population, distance], i) => {
@@ -441,7 +454,7 @@
     if (!isZoomed()) return setStatus("ready", "Zoom in on the map first, then download the zoomed view.");
     const view = visibleView();
     if (view) startJob("view", shown.label, { ...shown.request, view });
-    else if (!shown.mapBox || !shown.extent) setStatus("ready", "This map cannot be redrawn as a view. Use “Download map” for the whole map.");
+    else if (!shown.mapBox || !shown.extent) setStatus("ready", "This map cannot be redrawn as a view. Use 'Download map' for the whole map.");
     else setStatus("ready", "Too little of the map is visible for a zoomed view. Zoom out or move the map, then try again.");
   });
 
@@ -687,7 +700,7 @@
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      card.status.textContent = "Selected: press Ctrl+C (or ⌘+C) to copy.";
+      card.status.textContent = "Selected: press Ctrl+C (Cmd+C on a Mac) to copy.";
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(() => { card.status.textContent = "Copied."; }, fallback);
@@ -762,7 +775,7 @@
     const parts = [];
     if (!ui.sampleSetField.hidden && sampleSet) parts.push(sampleSetLabel(sampleSet));
     parts.push(`max distance ${(Number(ui.maxDistance.value) || 0.1).toFixed(2)}`);
-    if (ui.name.value.trim()) parts.push(`name “${clip(ui.name.value.trim())}”`);
+    if (ui.name.value.trim()) parts.push(`name "${clip(ui.name.value.trim())}"`);
     ui.optionsSummary.textContent = parts.join(", ");
   }
 
